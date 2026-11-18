@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101010">
+  <title>Galo | Calendário de Jogos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#">
+        <span class="brand-mark">G</span>
+        <span><strong>GALO<span class="brand-dot">.</span></strong><small>CALENDÁRIO DE JOGOS</small></span>
+      </a>
+      <div class="club-card">
+        <div class="club-crest" id="clubCrest">CAM</div>
+        <div><strong>Atlético Mineiro</strong><small>O calendário do Galo</small></div>
+      </div>
+      <nav class="side-nav">
+        <button class="nav-item active" data-view="calendar"><span>▦</span> Calendário</button>
+        <button class="nav-item" data-view="list"><span>☷</span> Lista de jogos</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <span class="live-dot"></span>
+        <span id="connectionText">Aguardando conexão</span>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">TEMPORADA • ATLÉTICO-MG</p>
+          <h1>Agenda do <span>Galo</span></h1>
+          <p class="subtitle">Todos os compromissos em um só lugar.</p>
+        </div>
+        <button class="refresh-btn" id="refreshBtn"><span>↻</span> Atualizar jogos</button>
+      </header>
+
+      <section class="summary-grid">
+        <article class="summary-card">
+          <span class="summary-label">PARTIDAS ENCONTRADAS</span>
+          <strong id="totalMatches">—</strong>
+          <small>Na faixa de datas consultada</small>
+        </article>
+        <article class="summary-card">
+          <span class="summary-label">PRÓXIMO JOGO</span>
+          <strong id="nextMatchDate">—</strong>
+          <small id="nextMatchOpponent">Aguardando calendário</small>
+        </article>
+        <article class="summary-card">
+          <span class="summary-label">CAMPEONATOS</span>
+          <strong id="competitionCount">—</strong>
+          <small>Competições identificadas na API</small>
+        </article>
+      </section>
+
+      <div id="notice" class="notice hidden" role="status"></div>
+
+      <section class="toolbar">
+        <div class="view-switch">
+          <button class="view-btn active" data-view="calendar">Calendário</button>
+          <button class="view-btn" data-view="list">Lista</button>
+        </div>
+        <div class="filters">
+          <label>
+            <span>COMPETIÇÃO</span>
+            <select id="competitionFilter"><option value="all">Todas as competições</option></select>
+          </label>
+          <label>
+            <span>SITUAÇÃO</span>
+            <select id="statusFilter">
+              <option value="all">Todas as situações</option>
+              <option value="upcoming">Próximos jogos</option>
+              <option value="FINISHED">Finalizados</option>
+              <option value="IN_PLAY">Ao vivo</option>
+              <option value="POSTPONED">Adiados</option>
+              <option value="CANCELLED">Cancelados</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section id="calendarView" class="content-view">
+        <div class="calendar-panel">
+          <div class="calendar-heading">
+            <div>
+              <p class="eyebrow">VISÃO MENSAL</p>
+              <h2 id="monthTitle">—</h2>
+            </div>
+            <div class="month-actions">
+              <button id="prevMonth" aria-label="Mês anterior">‹</button>
+              <button id="todayBtn">Hoje</button>
+              <button id="nextMonth" aria-label="Próximo mês">›</button>
+            </div>
+          </div>
+          <div class="weekdays">
+            <span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span><span>DOM</span>
+          </div>
+          <div id="calendarGrid" class="calendar-grid"></div>
+          <div class="calendar-legend"><span><i></i> Dia com jogo</span><span>Selecione uma data para ver as partidas</span></div>
+        </div>
+        <aside class="day-panel">
+          <p class="eyebrow">PARTIDAS DO DIA</p>
+          <h3 id="selectedDateTitle">Selecione uma data</h3>
+          <div id="selectedDayMatches" class="day-matches"><p class="empty-state">Escolha um dia marcado no calendário.</p></div>
+        </aside>
+      </section>
+
+      <section id="listView" class="content-view hidden">
+        <div class="list-heading">
+          <div><p class="eyebrow">ORDEM CRONOLÓGICA</p><h2>Todos os jogos</h2></div>
+          <span id="listCount" class="count-pill">0 partidas</span>
+        </div>
+        <div id="matchesList" class="matches-list"></div>
+      </section>
+
+      <footer>
+        <span>Dados: football-data.org + Supabase</span>
+        <span>Horários exibidos no fuso de Brasília</span>
+      </footer>
+    </main>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
