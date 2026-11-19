@@ -132,15 +132,17 @@ async function login(e){
   if(!res.ok || !data.access_token) return renderAddView("E-mail ou senha incorretos.");
   authToken = data.access_token;
     sessionStorage.setItem("sb_token", authToken);
-  updateNotice();
   renderAddView();
+  updateNotice();
+  
 }
 
 function logout(){
   authToken = null;
     sessionStorage.removeItem("sb_token");
-  updateNotice();
   renderAddView();
+  updateNotice();
+  
 }
 
 async function addMatch(e){
