@@ -2,7 +2,7 @@
 // Configure FOOTBALL_DATA_KEY em Vercel > Settings > Environment Variables.
 const BASE = "https://api.football-data.org/v4";
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   const key = process.env.FOOTBALL_DATA_KEY;
   if (!key) return res.status(500).json({ error: "Configure a variável FOOTBALL_DATA_KEY na Vercel." });
 
