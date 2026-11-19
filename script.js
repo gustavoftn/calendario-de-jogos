@@ -106,7 +106,7 @@ async function loadMatches(){
     // 1062 é o ID oficial do Atlético-MG na API-Football
     const teamId = "1062";
     const year = new Date().getFullYear();
-    const data = await api({ type: "teamMatches", id: teamId, season: String(year) });
+    const data = await api({id: teamId, season: String(year) });
     
     apiMatches = data.matches || [];
     

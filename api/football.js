@@ -37,11 +37,11 @@ export default async function handler(req, res) {
 
   try {
     const response = await fetch(`${BASE}/fixtures?team=${teamId}&season=${season}`, {
-      headers: {
-        "x-apisports-key": key,
-        "Accept": "application/json"
-      }
-    });
+  headers: {
+    "x-apisports-key": key,
+    "Accept": "application/json"
+  }
+});
 
     const data = await response.json().catch(() => ({}));
 
