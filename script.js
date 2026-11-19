@@ -442,14 +442,32 @@ function renderList(){
   bindMatchDetailClicks($("#matchesList"));
 }
 
+function calendarParts(){
+  const parts=[];
+  const cv=$("#calendarView"); if(cv) parts.push(cv);
+  const g=$("#calendarGrid"), s=$("#selectedDayMatches"), lv=$("#listView");
+  if(g&&s){
+    let el=g; while(el&&!el.contains(s)) el=el.parentElement;
+    if(el && el!==document.body && !(lv&&el.contains(lv))) parts.push(el);
+    else parts.push(g.parentElement, s.parentElement);
+  }
+  return parts.filter(Boolean);
+}
+
 function setView(view){
   state.view=view;
-  $("#calendarView").classList.toggle("hidden",view!=="calendar");
-  $("#listView").classList.toggle("hidden",view!=="list");
-  $("#addView").classList.toggle("hidden",view!=="add");
+  const toggle=(el,on)=>{
+    if(!el) return;
+    el.classList.toggle("hidden",!on);
+    el.style.display=on?"":"none";
+  };
+  calendarParts().forEach(el=>toggle(el,view==="calendar"));
+  toggle($("#listView"),view==="list");
+  toggle($("#addView"),view==="add");
   document.querySelectorAll("[data-view]").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
   if(view==="add") renderAddView();
   if(view==="list") setTimeout(()=>document.getElementById("lista-alvo")?.scrollIntoView({block:"start"}),0);
+  else window.scrollTo({top:0});
 }
 
 // ---------- Inicialização ----------
