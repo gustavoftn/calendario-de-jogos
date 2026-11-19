@@ -421,25 +421,24 @@ function bindMatchDetailClicks(container){
 }
 
 function renderList(){
-  const matches=[...visibleMatches()].reverse();
-  if(!matches.length){$("#matchesList").innerHTML='<p class="empty-state">Nenhuma partida encontrada com os filtros selecionados.</p>';return}
+  const matches=state.matches
+    .filter(m=>m.status==="FINISHED" && (state.competition==="all"||m.competition?.code===state.competition))
+    .sort((a,b)=>new Date(b.utcDate)-new Date(a.utcDate));
+  $("#listCount").textContent=`${matches.length} partidas finalizadas`;
+  if(!matches.length){$("#matchesList").innerHTML='<p class="empty-state">Nenhuma partida finalizada encontrada.</p>';return}
   const grouped=new Map();
   matches.forEach(m=>{const key=matchDate(m);if(!grouped.has(key))grouped.set(key,[]);grouped.get(key).push(m)});
-  const hoje=localDateKey(new Date().toISOString());
-  const chaves=[...grouped.keys()];
-  const alvo=chaves.find(k=>k>=hoje)||chaves[chaves.length-1];
   let html="";
   [...grouped.entries()].forEach(([key,items])=>{
     const d=new Date(`${key}T12:00:00`);
-    html+=`<div class="date-group"${key===alvo?' id="lista-alvo"':""}>${d.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long",year:"numeric"})}</div>`;
+    html+=`<div class="date-group">${d.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long",year:"numeric"})}</div>`;
     items.forEach(m=>{
       const h=m.homeTeam?.shortName||m.homeTeam?.name||"—",a=m.awayTeam?.shortName||m.awayTeam?.name||"—",s=m.score?.fullTime;
       const has=s?.home!=null&&s?.away!=null, r=resultOf(m);
-      html+=`<article role="button" tabindex="0" data-match-id="${esc(m.id)}" class="list-match match-clickable ${colorClass(m)}"><div class="list-date">${localTime(m.utcDate)}<small class="status-tag">${esc(statusNames[m.status]||m.status||"—")}</small></div><div class="list-teams">${esc(h)} <span style="color:#888">×</span> ${esc(a)}<small>${esc(m.venue||"Estádio a confirmar")}</small></div><div class="list-comp">${esc(m.competition?.name||"Competição")}</div><div class="list-score">${has?`${s.home} × ${s.away}`:"—"}${r?`<span class="result-badge ${r}">${resultLabel[r]}</span>`:""}</div></article>`;
+      html+=`<article class="list-match clickable ${colorClass(m)}" data-match-id="${esc(m.id)}" tabindex="0"><div class="list-date">${localTime(m.utcDate)}<small class="status-tag">${esc(statusNames[m.status]||m.status||"—")}</small></div><div class="list-teams">${esc(h)} <span style="color:#888">×</span> ${esc(a)}<small>${esc(m.venue||"Estádio a confirmar")}</small></div><div class="list-comp">${esc(m.competition?.name||"Competição")}</div><div class="list-score">${has?`${s.home} × ${s.away}`:"—"}${r?`<span class="result-badge ${r}">${resultLabel[r]}</span>`:""}</div></article>`;
     });
   });
   $("#matchesList").innerHTML=html;
-  bindMatchDetailClicks($("#matchesList"));
 }
 
 function calendarParts(){
