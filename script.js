@@ -1,5 +1,5 @@
 const API_BASE = "/api/football";
-// Supabase: chave publicável. A proteção dos dados é feita pela políticas RLS.
+// Supabase: chave publicável. A proteção dos dados é feita pelas políticas RLS.
 const SUPABASE_URL = "https://pxjgybtipdgxamchzpbh.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_fK6QyLga4HbsRg104vg_Iw_6UCsXXbB";
 
@@ -54,6 +54,126 @@ function hideNotice(){$("#notice").classList.add("hidden")}
 function setConnection(text){$("#connectionText").textContent=text}
 function normalizeName(v){return String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase()}
 
+// ---------- Resultado (vitória / empate / derrota) ----------
+const isGalo = (t) => /atletico[\s-]*(mg|mineiro)/.test(normalizeName(t?.name || t?.shortName));
+const resultLabel = { win: "Vitória", draw: "Empate", loss: "Derrota" };
+
+function resultOf(m){
+  if(m.status !== "FINISHED") return null;
+  const s = m.score?.fullTime;
+  if(s?.home == null || s?.away == null) return null;
+  const casa = isGalo(m.homeTeam), fora = isGalo(m.awayTeam);
+  if(!casa && !fora) return null;
+  if(s.home === s.away) return "draw";
+  return (casa ? s.home > s.away : s.away > s.home) ? "win" : "loss";
+}
+
+// ---------- Adicionar jogo (exige login no Supabase) ----------
+let authToken = sessionStorage.getItem("sb_token") || null;
+
+function buildAddUI(){
+  const nav = document.querySelector(".nav-item")?.parentElement;
+  if(nav){
+    const b = document.createElement("button");
+    b.className = "nav-item"; b.dataset.view = "add";
+    b.textContent = "＋ Adicionar jogo";
+    nav.appendChild(b);
+  }
+  const sec = document.createElement("section");
+  sec.id = "addView"; sec.className = "hidden";
+  $("#listView").insertAdjacentElement("afterend", sec);
+}
+
+function renderAddView(msg = ""){
+  const box = $("#addView");
+  if(!authToken){
+    box.innerHTML = `<form id="loginForm" class="add-card">
+      <h3>Entrar para adicionar jogos</h3>
+      <label>E-mail<input type="email" id="loginEmail" required></label>
+      <label>Senha<input type="password" id="loginPass" required></label>
+      <button type="submit" class="add-btn">Entrar</button>
+      <p class="add-msg">${esc(msg)}</p></form>`;
+    $("#loginForm").addEventListener("submit", login);
+    return;
+  }
+  box.innerHTML = `<form id="addForm" class="add-card">
+    <h3>Adicionar jogo</h3>
+    <div class="add-grid">
+      <label>Data<input type="date" name="data" required></label>
+      <label>Horário<input type="time" name="horario" value="16:00"></label>
+      <label>Mandante<input name="mandante" required placeholder="Atlético-MG"></label>
+      <label>Visitante<input name="visitante" required></label>
+      <label>Competição<input name="competicao" list="comps" placeholder="Brasileirão"></label>
+      <datalist id="comps"><option value="Brasileirão"><option value="Copa do Brasil"><option value="Libertadores"><option value="Sul-Americana"><option value="Mineiro"><option value="Amistoso"></datalist>
+      <label>Estádio<input name="estadio"></label>
+      <label>Situação<select name="status">
+        <option>Agendado</option><option>Ao vivo</option><option>Finalizado</option><option>Adiado</option><option>Cancelado</option>
+      </select></label>
+      <label>Gols mandante<input type="number" min="0" name="gols_mandante"></label>
+      <label>Gols visitante<input type="number" min="0" name="gols_visitante"></label>
+    </div>
+    <div class="add-actions">
+      <button type="submit" class="add-btn">Salvar jogo</button>
+      <button type="button" id="logoutBtn" class="add-btn ghost">Sair</button>
+    </div>
+    <p class="add-msg">${esc(msg)}</p></form>`;
+  $("#addForm").addEventListener("submit", addMatch);
+  $("#logoutBtn").addEventListener("click", logout);
+}
+
+async function login(e){
+  e.preventDefault();
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: { apikey: SUPABASE_PUBLISHABLE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ email: $("#loginEmail").value, password: $("#loginPass").value })
+  });
+  const data = await res.json().catch(() => ({}));
+  if(!res.ok || !data.access_token) return renderAddView("E-mail ou senha incorretos.");
+  authToken = data.access_token;
+  sessionStorage.setItem("sb_token", authToken);
+  renderAddView();
+}
+
+function logout(){
+  authToken = null;
+  sessionStorage.removeItem("sb_token");
+  renderAddView();
+}
+
+async function addMatch(e){
+  e.preventDefault();
+  const v = Object.fromEntries(new FormData(e.target));
+  const num = (x) => (x === "" || x == null ? null : Number(x));
+  const row = {
+    data: v.data, horario: v.horario || null,
+    mandante: v.mandante.trim(), visitante: v.visitante.trim(),
+    competicao: v.competicao.trim() || null, estadio: v.estadio.trim() || null,
+    status: v.status, gols_mandante: num(v.gols_mandante), gols_visitante: num(v.gols_visitante)
+  };
+  if(row.status === "Finalizado" && (row.gols_mandante == null || row.gols_visitante == null))
+    return renderAddView("Para jogo finalizado, informe os dois placares.");
+
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/jogos_manuais`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${authToken}`,
+      "Content-Type": "application/json",
+      Prefer: "return=minimal"
+    },
+    body: JSON.stringify(row)
+  });
+  if(res.status === 401 || res.status === 403){ logout(); return renderAddView("Sessão expirada. Entre de novo."); }
+  if(!res.ok){
+    const err = await res.json().catch(() => ({}));
+    return renderAddView(`Erro ao salvar: ${err.message || res.status}`);
+  }
+  await loadMatches();
+  renderAddView("Jogo salvo! Já aparece no calendário e na lista.");
+}
+
+// ---------- Carregar jogos ----------
 async function loadManualMatches(){
   const url = `${SUPABASE_URL}/rest/v1/jogos_manuais?select=*&order=data.asc`;
   const res = await fetch(url, {
@@ -74,7 +194,7 @@ async function loadManualMatches(){
       "intervalo":"PAUSED", "finalizado":"FINISHED", "adiado":"POSTPONED",
       "suspenso":"SUSPENDED", "cancelado":"CANCELLED"
     };
-    const status = statusMap[normalizeName(row.status)] || "SCHEDULED";
+    const status = statusMap[normalizeName(row.status)] || statusMap[String(row.status||"").toLowerCase()] || "SCHEDULED";
     const hasScore = row.gols_mandante !== null && row.gols_mandante !== undefined &&
       row.gols_visitante !== null && row.gols_visitante !== undefined;
     return {
@@ -83,7 +203,7 @@ async function loadManualMatches(){
       status,
       homeTeam: { name: row.mandante, shortName: row.mandante },
       awayTeam: { name: row.visitante, shortName: row.visitante },
-      competition: { name: competitionName, code: competitionCode },
+      competition: { name: competitionName, code: competitionCode, label: competitionName.slice(0,3).toUpperCase() },
       venue: row.estadio || "Estádio a confirmar",
       score: { fullTime: { home: hasScore ? row.gols_mandante : null, away: hasScore ? row.gols_visitante : null } },
       source: "supabase"
@@ -91,6 +211,7 @@ async function loadManualMatches(){
   });
 }
 
+// Como o Galo joga no máximo uma vez por dia, a data basta para detectar duplicados
 function matchIdentity(m){
   return matchDate(m);
 }
@@ -101,8 +222,8 @@ async function loadMatches(){
   const errors = [];
   let apiMatches = [];
   let manualMatches = [];
-  
-    try {
+
+  try {
     const data = await api({});
     apiMatches = data.matches || [];
     if (data.errors?.length) errors.push(`ESPN: ${data.errors.join("; ")}`);
@@ -123,23 +244,24 @@ async function loadMatches(){
   const combined = new Map();
   apiMatches.forEach(m => combined.set(matchIdentity(m), m));
   manualMatches.forEach(m => { const key = matchIdentity(m); if(!combined.has(key)) combined.set(key, m); });
-  
+
   state.matches = [...combined.values()].sort((a, b) => new Date(a.utcDate) - new Date(b.utcDate));
   renderAll();
-  
+
   setConnection(errors.length === 0 ? "Dados atualizados" : state.matches.length ? "Dados parcialmente carregados" : "Falha na conexão");
   const apiCount = apiMatches.length, manualCount = manualMatches.length;
-  
+
   if(errors.length){
-    showNotice(`${state.matches.length} partidas carregadas (${apiCount} da API e ${manualCount} do Supabase). ${errors.join(" | ")}`);
+    showNotice(`${state.matches.length} partidas carregadas (${apiCount} da ESPN e ${manualCount} do Supabase). ${errors.join(" | ")}`);
   }else if(!state.matches.length){
-    showNotice("Nenhuma partida encontrada. Cadastre jogos manualmente na tabela jogos_manuais do Supabase ou verifique a cobertura da API.");
+    showNotice("Nenhuma partida encontrada. Cadastre jogos manualmente na aba Adicionar jogo ou verifique a cobertura da ESPN.");
   }else{
-    showNotice(`Calendário carregado: ${state.matches.length} partidas — ${apiCount} da API e ${manualCount} cadastradas no Supabase.`);
+    showNotice(`Calendário carregado: ${state.matches.length} partidas — ${apiCount} da ESPN e ${manualCount} cadastradas no Supabase.`);
   }
   $("#refreshBtn").disabled = false;
 }
 
+// ---------- Desenho na tela ----------
 function renderAll(){renderSummary();renderCompetitionFilter();renderCalendar();renderSelectedDay();renderList()}
 
 function renderSummary(){
@@ -167,13 +289,14 @@ function renderCalendar(){
   const ms=visibleMatches(), byDate=new Map();
   ms.forEach(match=>{const k=matchDate(match);if(!byDate.has(k))byDate.set(k,[]);byDate.get(k).push(match)});
   const today=localDateKey(new Date().toISOString());
+  const label=(g)=>{const r=resultOf(g);return `<span class="day-match-label ${r?`result-${r}`:""}">${esc(g.competition?.label||g.competition?.code||"JOGO")} · ${esc(g.homeTeam?.shortName||g.homeTeam?.name||"—")} x ${esc(g.awayTeam?.shortName||g.awayTeam?.name||"—")}</span>`};
   let html="";
   for(let i=0;i<42;i++){
     const d=new Date(start);d.setDate(start.getDate()+i);
     const key=[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");
     const games=byDate.get(key)||[];
     const classes=["calendar-day",d.getMonth()!==m?"outside":"",key===today?"today":"",key===state.selectedDate?"selected":"",games.length?"has-match":""].filter(Boolean).join(" ");
-    html+=`<button class="${classes}" data-date="${key}"><span class="day-number">${d.getDate()}</span>${games.slice(0,2).map(g=>`<span class="day-match-label">${esc(g.competition?.code||"JOGO")} · ${esc(g.homeTeam?.shortName||g.homeTeam?.name||"—")} x ${esc(g.awayTeam?.shortName||g.awayTeam?.name||"—")}</span>`).join("")}${games.length>2?`<span class="day-match-label">+${games.length-2} jogos</span>`:""}</button>`;
+    html+=`<button class="${classes}" data-date="${key}"><span class="day-number">${d.getDate()}</span>${games.slice(0,2).map(label).join("")}${games.length>2?`<span class="day-match-label">+${games.length-2} jogos</span>`:""}</button>`;
   }
   $("#calendarGrid").innerHTML=html;
   $("#calendarGrid").querySelectorAll("[data-date]").forEach(btn=>btn.addEventListener("click",()=>{state.selectedDate=btn.dataset.date;renderCalendar();renderSelectedDay()}));
@@ -191,7 +314,8 @@ function matchCard(m){
   const h=m.homeTeam?.shortName||m.homeTeam?.name||"—",a=m.awayTeam?.shortName||m.awayTeam?.name||"—";
   const score=m.score?.fullTime;
   const hasScore=score?.home!=null&&score?.away!=null;
-  return `<article class="day-match"><div class="match-comp">${esc(m.competition?.name||"Competição")}</div><div class="match-teams"><span>${esc(h)}</span><span class="versus">${hasScore?`${score.home} × ${score.away}`:"×"}</span><span>${esc(a)}</span></div><div class="match-meta"><span>${localTime(m.utcDate)} · ${esc(statusNames[m.status]||m.status||"—")}</span><span>${esc(m.venue||"Estádio a confirmar")}</span></div></article>`;
+  const r=resultOf(m);
+  return `<article class="day-match ${r?`result-${r}`:""}"><div class="match-comp">${esc(m.competition?.name||"Competição")}</div><div class="match-teams"><span>${esc(h)}</span><span class="versus">${hasScore?`${score.home} × ${score.away}`:"×"}</span><span>${esc(a)}</span></div><div class="match-meta"><span>${localTime(m.utcDate)} · ${esc(statusNames[m.status]||m.status||"—")} ${r?`<span class="result-badge ${r}">${resultLabel[r]}</span>`:""}</span><span>${esc(m.venue||"Estádio a confirmar")}</span></div></article>`;
 }
 
 function renderList(){
@@ -205,8 +329,8 @@ function renderList(){
     html+=`<div class="date-group">${d.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long",year:"numeric"})}</div>`;
     items.forEach(m=>{
       const h=m.homeTeam?.shortName||m.homeTeam?.name||"—",a=m.awayTeam?.shortName||m.awayTeam?.name||"—",s=m.score?.fullTime;
-      const has=s?.home!=null&&s?.away!=null;
-      html+=`<article class="list-match"><div class="list-date">${localTime(m.utcDate)}<small class="status-tag">${esc(statusNames[m.status]||m.status||"—")}</small></div><div class="list-teams">${esc(h)} <span style="color:#888">×</span> ${esc(a)}<small>${esc(m.venue||"Estádio a confirmar")}</small></div><div class="list-comp">${esc(m.competition?.name||"Competição")}</div><div class="list-score">${has?`${s.home} × ${s.away}`:"—"}</div></article>`;
+      const has=s?.home!=null&&s?.away!=null, r=resultOf(m);
+      html+=`<article class="list-match ${r?`result-${r}`:""}"><div class="list-date">${localTime(m.utcDate)}<small class="status-tag">${esc(statusNames[m.status]||m.status||"—")}</small></div><div class="list-teams">${esc(h)} <span style="color:#888">×</span> ${esc(a)}<small>${esc(m.venue||"Estádio a confirmar")}</small></div><div class="list-comp">${esc(m.competition?.name||"Competição")}</div><div class="list-score">${has?`${s.home} × ${s.away}`:"—"}${r?`<span class="result-badge ${r}">${resultLabel[r]}</span>`:""}</div></article>`;
     });
   });
   $("#matchesList").innerHTML=html;
@@ -216,8 +340,13 @@ function setView(view){
   state.view=view;
   $("#calendarView").classList.toggle("hidden",view!=="calendar");
   $("#listView").classList.toggle("hidden",view!=="list");
+  $("#addView").classList.toggle("hidden",view!=="add");
   document.querySelectorAll("[data-view]").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
+  if(view==="add") renderAddView();
 }
+
+// ---------- Inicialização ----------
+buildAddUI();
 
 document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view)));
 $("#prevMonth").addEventListener("click",()=>{state.month.setMonth(state.month.getMonth()-1);renderCalendar()});
