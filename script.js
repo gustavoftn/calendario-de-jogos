@@ -49,87 +49,81 @@ async function api(params) {
   return data;
 }
 
-// ---------- Detalhes da partida ----------
-const HISTORY_API = "/api/history";
-const DETAILS_API = "/api/match-details";
-
-function installMatchModal(){
-  if(document.getElementById("matchDetailsModal")) return;
-  const style = document.createElement("style");
-  style.textContent = `
-    .match-modal-backdrop.hidden{display:none!important}.match-modal-backdrop{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.76);display:flex;align-items:center;justify-content:center;padding:18px;backdrop-filter:blur(7px)}
-    .match-modal{width:min(680px,100%);max-height:min(88vh,900px);overflow:auto;background:#151515;color:#f5f5f5;border:1px solid #303030;border-radius:20px;box-shadow:0 24px 80px #0009}
-    .match-modal-head{display:flex;align-items:center;justify-content:space-between;padding:20px 22px;border-bottom:1px solid #2b2b2b;position:sticky;top:0;background:#151515;z-index:2}
-    .match-modal-head h2{font:800 18px Manrope, sans-serif;margin:0}.match-modal-close{border:0;background:#292929;color:#fff;border-radius:50%;width:36px;height:36px;font-size:22px;cursor:pointer}
-    .match-modal-body{padding:22px}.match-modal-comp{color:#a4c639;text-transform:uppercase;font-size:11px;font-weight:800;letter-spacing:1.3px;text-align:center}
-    .match-modal-score{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin:20px 0 24px}.match-modal-team{text-align:center;min-width:0}.match-modal-team img{width:54px;height:54px;object-fit:contain;display:block;margin:0 auto 9px}.match-modal-team strong{font-size:14px;display:block;overflow-wrap:anywhere}.match-modal-result{font-size:27px;font-weight:800;white-space:nowrap}.match-modal-time{text-align:center;color:#aaa;font-size:12px;margin-top:7px}
-    .match-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}.match-info-item{background:#202020;border:1px solid #303030;border-radius:12px;padding:13px}.match-info-item span{display:block;color:#999;font-size:10px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}.match-info-item strong{font-size:13px;line-height:1.45;overflow-wrap:anywhere}
-    .match-modal-section{border-top:1px solid #303030;padding-top:18px;margin-top:18px}.match-modal-section h3{font:800 13px Manrope,sans-serif;margin:0 0 13px}.match-broadcast{display:inline-flex;background:#252b18;color:#d8ee8c;border:1px solid #46531f;border-radius:8px;padding:7px 10px;margin:0 6px 6px 0;font-size:12px}.match-h2h-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.match-h2h-stat{background:#202020;border-radius:10px;padding:12px;text-align:center}.match-h2h-stat strong{display:block;font-size:22px}.match-h2h-stat span{font-size:10px;color:#aaa}.match-h2h-list{list-style:none;padding:0;margin:12px 0 0}.match-h2h-list li{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #292929;font-size:12px}.match-modal-muted{color:#999;font-size:12px;line-height:1.5}.match-modal-loading{color:#aaa;text-align:center;padding:18px}.match-clickable{cursor:pointer}.match-clickable:hover{filter:brightness(1.15)}.match-open-hint{display:block;text-align:right;color:#a4c639;font-size:10px;margin-top:8px;font-weight:700}.match-calendar-clickable{cursor:pointer}
-    @media(max-width:520px){.match-modal-backdrop{padding:8px}.match-modal{border-radius:15px}.match-modal-body{padding:16px}.match-info-grid{grid-template-columns:1fr}.match-modal-score{gap:5px}.match-modal-result{font-size:21px}.match-modal-team strong{font-size:12px}}
-  `;
-  document.head.appendChild(style);
-  const modal = document.createElement("div");
-  modal.id = "matchDetailsModal";
-  modal.className = "match-modal-backdrop hidden";
-  modal.setAttribute("aria-hidden","true");
-  modal.innerHTML = `<section class="match-modal" role="dialog" aria-modal="true" aria-labelledby="matchModalTitle"><header class="match-modal-head"><h2 id="matchModalTitle">Detalhes da partida</h2><button class="match-modal-close" type="button" aria-label="Fechar">×</button></header><div class="match-modal-body" id="matchModalBody"></div></section>`;
-  document.body.appendChild(modal);
-  modal.addEventListener("click", e=>{if(e.target===modal || e.target.closest(".match-modal-close")){e.preventDefault();e.stopPropagation();closeMatchDetails();}});
-  document.addEventListener("keydown", e=>{if(e.key==="Escape") closeMatchDetails();});
-}
-
-function closeMatchDetails(){
-  const modal=$("#matchDetailsModal");
-  if(!modal) return;
-  modal.classList.add("hidden"); modal.setAttribute("aria-hidden","true");
-}
-
-function matchTeamName(team){return team?.name || team?.shortName || "Equipe";}
-function renderHistory(history, match){
-  if(!history) return `<p class="match-modal-muted">Histórico indisponível para esta partida.</p>`;
-  if(history.message) return `<p class="match-modal-muted">${esc(history.message)}</p>`;
-  const stats=history.stats || {};
-  const recent=Array.isArray(history.matches)?history.matches:[];
-  const list=recent.length?`<ul class="match-h2h-list">${recent.slice(0,10).map(g=>`<li><span>${esc(localDate(g.utcDate,{day:"2-digit",month:"short",year:"numeric"}))} · ${esc(g.homeTeam||"—")} x ${esc(g.awayTeam||"—")}</span><strong>${g.homeGoals ?? "-"} × ${g.awayGoals ?? "-"}</strong></li>`).join("")}</ul>`:"";
-  if(stats.homeWins==null && stats.draws==null && stats.awayWins==null && !recent.length) return `<p class="match-modal-muted">A API não retornou confrontos anteriores.</p>`;
-  return `<div class="match-h2h-stats"><div class="match-h2h-stat"><strong>${stats.homeWins ?? 0}</strong><span>Vitórias ${esc(matchTeamName(match.homeTeam))}</span></div><div class="match-h2h-stat"><strong>${stats.draws ?? 0}</strong><span>Empates</span></div><div class="match-h2h-stat"><strong>${stats.awayWins ?? 0}</strong><span>Vitórias ${esc(matchTeamName(match.awayTeam))}</span></div></div>${list}<p class="match-modal-muted">${history.totalMatches ?? recent.length ?? 0} confrontos considerados. Dados: football-data.org.</p>`;
-}
-
-async function openMatchDetails(matchId){
-  const match=state.matches.find(m=>String(m.id)===String(matchId));
-  if(!match) return;
-  installMatchModal();
-  const modal=$("#matchDetailsModal"), body=$("#matchModalBody");
-  const home=match.homeTeam||{}, away=match.awayTeam||{}, score=match.score?.fullTime;
-  const hasScore=score?.home!=null && score?.away!=null;
-  const hLogo=home.crest||home.logo||"", aLogo=away.crest||away.logo||"";
-  $("#matchModalTitle").textContent=`${matchTeamName(home)} x ${matchTeamName(away)}`;
-  modal.classList.remove("hidden"); modal.setAttribute("aria-hidden","false");
-  body.innerHTML=`<div class="match-modal-comp">${esc(match.competition?.name||"Partida")}</div><div class="match-modal-score"><div class="match-modal-team">${hLogo?`<img src="${esc(hLogo)}" alt="">`:""}<strong>${esc(matchTeamName(home))}</strong></div><div><div class="match-modal-result">${hasScore?`${score.home} × ${score.away}`:"VS"}</div><div class="match-modal-time">${esc(localTime(match.utcDate))} · ${esc(statusNames[match.status]||match.status||"A confirmar")}</div></div><div class="match-modal-team">${aLogo?`<img src="${esc(aLogo)}" alt="">`:""}<strong>${esc(matchTeamName(away))}</strong></div></div><div class="match-info-grid"><div class="match-info-item"><span>Data e horário</span><strong>${esc(localDate(match.utcDate,{weekday:"long",day:"2-digit",month:"long",year:"numeric"}))}<br>${esc(localTime(match.utcDate))} · Brasília</strong></div><div class="match-info-item"><span>Estádio</span><strong id="matchVenue">${esc(match.venue||"A confirmar")}</strong></div><div class="match-info-item"><span>Cidade</span><strong id="matchCity">Consultando ESPN…</strong></div><div class="match-info-item"><span>Transmissão</span><strong id="matchBroadcast">Consultando ESPN…</strong></div></div><section class="match-modal-section"><h3>Histórico de confrontos</h3><div id="matchHistory" class="match-modal-loading">Consultando football-data.org…</div></section>`;
-
-  const requests=[];
-  if(match.eventId && match.leagueCode){
-    requests.push(fetch(`${DETAILS_API}?event=${encodeURIComponent(match.eventId)}&league=${encodeURIComponent(match.leagueCode)}`).then(r=>r.json().then(d=>{if(!r.ok) throw new Error(d.error||"Falha ao consultar ESPN");return d;})).then(data=>{
-      const city=data.city || data.venue?.city || "Não informado pela ESPN";
-      const venue=data.venue?.name || data.venueName || match.venue || "A confirmar";
-      const broadcasts=Array.isArray(data.broadcasts)?data.broadcasts:[];
-      $("#matchVenue").textContent=venue; $("#matchCity").textContent=city;
-      $("#matchBroadcast").innerHTML=broadcasts.length?broadcasts.map(b=>`<span class="match-broadcast">${esc(typeof b==="string"?b:(b.name||b.shortName||b.market||"Transmissão"))}</span>`).join(""):'<span class="match-modal-muted">Não informado pela ESPN</span>';
-    }).catch(()=>{$("#matchCity").textContent="Não disponível";$("#matchBroadcast").textContent="Não informado pela ESPN";}));
-  } else {
-    $("#matchCity").textContent="Não informado"; $("#matchBroadcast").textContent="Não disponível para jogos manuais";
-  }
-  if(home.name && away.name){
-    const qs=new URLSearchParams({home:home.name,away:away.name,date:match.utcDate||""});
-    requests.push(fetch(`${HISTORY_API}?${qs}`).then(r=>r.json().then(d=>{if(!r.ok) throw new Error(d.error||"Falha ao consultar histórico");return d;})).then(data=>{$("#matchHistory").innerHTML=renderHistory(data,match);}).catch(err=>{$("#matchHistory").innerHTML=`<p class="match-modal-muted">${esc(err.message||"Histórico indisponível")}</p>`;}));
-  } else $("#matchHistory").textContent="Não há equipes suficientes para consultar o histórico.";
-  await Promise.allSettled(requests);
-}
-
-function showNotice(msg){$("#notice").textContent=msg;$("#notice").classList.remove("hidden")}
-function hideNotice(){$("#notice").classList.add("hidden")}
-function setConnection(text){$("#connectionText").textContent=text}
+function showNotice(msg){const n=$("#notice"); if(!n) return; n.textContent=msg; n.classList.remove("hidden"); n.style.display=""}
+function hideNotice(){const n=$("#notice"); if(!n) return; n.classList.add("hidden"); n.style.display="none"}
+function setConnection(text){const c=$("#connectionText"); if(c) c.textContent=text}
 function normalizeName(v){return String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase()}
+
+// ---------- Estilos dos recursos novos (embutidos, não dependem do style.css) ----------
+function injectStyles(){
+  const css = `
+    .hidden{display:none!important}
+
+    /* Resultado e agendado */
+    .day-match.result-win,.list-match.result-win{border-left:4px solid #22c55e}
+    .day-match.result-draw,.list-match.result-draw{border-left:4px solid #eab308}
+    .day-match.result-loss,.list-match.result-loss{border-left:4px solid #ef4444}
+    .day-match.status-scheduled,.list-match.status-scheduled{border-left:4px solid #3b82f6}
+    .day-match-label.result-win{color:#4ade80!important}
+    .day-match-label.result-draw{color:#facc15!important}
+    .day-match-label.result-loss{color:#f87171!important}
+    .day-match-label.status-scheduled{color:#60a5fa!important}
+    .result-badge{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700}
+    .result-badge.win{background:rgba(34,197,94,.15);color:#4ade80}
+    .result-badge.draw{background:rgba(234,179,8,.15);color:#facc15}
+    .result-badge.loss{background:rgba(239,68,68,.15);color:#f87171}
+    .day-match.clickable,.list-match.clickable{cursor:pointer}
+    .day-match.clickable:hover,.list-match.clickable:hover{filter:brightness(1.15)}
+
+    /* Formulário */
+    .add-card{display:grid;gap:14px;max-width:760px;padding:24px;background:#161616;border:1px solid #2a2a2a;border-radius:16px}
+    .add-card h3{margin:0;font-size:20px}
+    .add-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+    .add-card label{display:grid;gap:6px;font-size:12px;color:#aaa}
+    .add-card input,.add-card select{padding:10px 12px;background:#0e0e0e;border:1px solid #333;border-radius:10px;color:#fff;font:inherit}
+    .add-actions{display:flex;gap:10px}
+    .add-btn{padding:11px 18px;background:#e11d2e;border:0;border-radius:10px;color:#fff;font-weight:700;cursor:pointer}
+    .add-btn.ghost{background:transparent;border:1px solid #444}
+    .add-msg{min-height:1em;margin:0;font-size:13px;color:#facc15}
+
+    /* Janela de detalhes */
+    .modal{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:16px}
+    .modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.72)}
+    .modal-card{position:relative;width:min(640px,100%);max-height:90vh;overflow:auto;background:#161616;border:1px solid #2a2a2a;border-radius:18px;padding:24px;color:#fff}
+    .modal-close{position:absolute;top:8px;right:14px;background:none;border:0;color:#aaa;font-size:30px;line-height:1;cursor:pointer}
+    .modal-head{text-align:center}
+    .modal-comp{color:#999;font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+    .modal-teams{display:flex;align-items:center;justify-content:center;gap:16px;margin:14px 0}
+    .modal-team{display:flex;flex-direction:column;align-items:center;gap:8px;flex:1;text-align:center;font-weight:700}
+    .modal-crest{width:56px;height:56px;object-fit:contain}
+    .modal-score{font-size:32px;font-weight:900;white-space:nowrap}
+    .modal-info{display:grid;gap:10px;margin:18px 0}
+    .modal-info>div{display:grid;grid-template-columns:110px 1fr;gap:10px}
+    .modal-info dt{color:#999;font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+    .modal-info dd{margin:0}
+    .modal-title{margin:22px 0 8px;font-size:15px}
+    .modal-muted{color:#888;font-size:12px}
+    .modal-sum{font-size:13px}
+    .modal-sum .win{color:#4ade80}.modal-sum .draw{color:#facc15}.modal-sum .loss{color:#f87171}
+    .h2h-list{list-style:none;margin:8px 0;padding:0;display:grid;gap:6px}
+    .h2h-row{display:grid;grid-template-columns:90px 1fr;gap:4px 10px;padding:8px 10px;background:#0e0e0e;border-radius:10px;border-left:4px solid #444;font-size:13px}
+    .h2h-row .h2h-comp{grid-column:2;color:#888;font-size:11px}
+    .h2h-row.result-win{border-left-color:#22c55e}
+    .h2h-row.result-draw{border-left-color:#eab308}
+    .h2h-row.result-loss{border-left-color:#ef4444}
+  `;
+  const style = document.createElement("style");
+  style.id = "app-extra-styles";
+  style.textContent = css;
+  document.head.appendChild(style);
+}
+
+// Aviso de carregamento: só aparece para o admin (logado)
+let noticeText = "";
+function updateNotice(){
+  if(authToken && noticeText) showNotice(noticeText);
+  else hideNotice();
+}
 
 // ---------- Resultado (vitória / empate / derrota) ----------
 const isGalo = (t) => /atletico[\s-]*(mg|mineiro)/.test(normalizeName(t?.name || t?.shortName));
@@ -145,6 +139,13 @@ function resultOf(m){
   return (casa ? s.home > s.away : s.away > s.home) ? "win" : "loss";
 }
 
+function colorClass(m){
+  const r = resultOf(m);
+  if(r) return `result-${r}`;
+  if(["SCHEDULED","TIMED"].includes(m.status)) return "status-scheduled";
+  return "";
+}
+
 // ---------- Adicionar jogo (exige login no Supabase) ----------
 let authToken = sessionStorage.getItem("sb_token") || null;
 
@@ -158,11 +159,15 @@ function buildAddUI(){
   }
   const sec = document.createElement("section");
   sec.id = "addView"; sec.className = "hidden";
-  $("#listView").insertAdjacentElement("afterend", sec);
+  sec.style.display = "none";
+  const lv = $("#listView");
+  if(lv) lv.insertAdjacentElement("afterend", sec);
+  else document.body.appendChild(sec);
 }
 
 function renderAddView(msg = ""){
   const box = $("#addView");
+  if(!box) return;
   if(!authToken){
     box.innerHTML = `<form id="loginForm" class="add-card">
       <h3>Entrar para adicionar jogos</h3>
@@ -183,6 +188,7 @@ function renderAddView(msg = ""){
       <label>Competição<input name="competicao" list="comps" placeholder="Brasileirão"></label>
       <datalist id="comps"><option value="Brasileirão"><option value="Copa do Brasil"><option value="Libertadores"><option value="Sul-Americana"><option value="Mineiro"><option value="Amistoso"></datalist>
       <label>Estádio<input name="estadio"></label>
+      <label>Transmissão<input name="transmissao" placeholder="Globo, Premiere"></label>
       <label>Situação<select name="status">
         <option>Agendado</option><option>Ao vivo</option><option>Finalizado</option><option>Adiado</option><option>Cancelado</option>
       </select></label>
@@ -208,18 +214,16 @@ async function login(e){
   const data = await res.json().catch(() => ({}));
   if(!res.ok || !data.access_token) return renderAddView("E-mail ou senha incorretos.");
   authToken = data.access_token;
-    sessionStorage.setItem("sb_token", authToken);
+  sessionStorage.setItem("sb_token", authToken);
   renderAddView();
   updateNotice();
-  
 }
 
 function logout(){
   authToken = null;
-    sessionStorage.removeItem("sb_token");
+  sessionStorage.removeItem("sb_token");
   renderAddView();
   updateNotice();
-  
 }
 
 async function addMatch(e){
@@ -232,6 +236,9 @@ async function addMatch(e){
     competicao: v.competicao.trim() || null, estadio: v.estadio.trim() || null,
     status: v.status, gols_mandante: num(v.gols_mandante), gols_visitante: num(v.gols_visitante)
   };
+  // Só envia a transmissão se preenchida (exige a coluna "transmissao" na tabela)
+  if(v.transmissao && v.transmissao.trim()) row.transmissao = v.transmissao.trim();
+
   if(row.status === "Finalizado" && (row.gols_mandante == null || row.gols_visitante == null))
     return renderAddView("Para jogo finalizado, informe os dois placares.");
 
@@ -278,6 +285,7 @@ async function loadManualMatches(){
     const status = statusMap[normalizeName(row.status)] || statusMap[String(row.status||"").toLowerCase()] || "SCHEDULED";
     const hasScore = row.gols_mandante !== null && row.gols_mandante !== undefined &&
       row.gols_visitante !== null && row.gols_visitante !== undefined;
+    const broadcasts = row.transmissao ? String(row.transmissao).split(",").map(s=>s.trim()).filter(Boolean) : [];
     return {
       id: `manual-${row.id}`,
       utcDate,
@@ -286,6 +294,7 @@ async function loadManualMatches(){
       awayTeam: { name: row.visitante, shortName: row.visitante },
       competition: { name: competitionName, code: competitionCode, label: competitionName.slice(0,3).toUpperCase() },
       venue: row.estadio || "Estádio a confirmar",
+      broadcasts,
       score: { fullTime: { home: hasScore ? row.gols_mandante : null, away: hasScore ? row.gols_visitante : null } },
       source: "supabase"
     };
@@ -299,13 +308,8 @@ function matchIdentity(m){
 
 async function loadMatches(){
   hideNotice(); setConnection("Carregando partidas…");
-  $("#refreshBtn").disabled = true;
+  const rb = $("#refreshBtn"); if(rb) rb.disabled = true;
   const errors = [];
-  let noticeText = "";
-function updateNotice(){
-  if(authToken && noticeText) showNotice(noticeText);
-  else hideNotice();
-}
   let apiMatches = [];
   let manualMatches = [];
 
@@ -316,7 +320,8 @@ function updateNotice(){
 
     state.team = { name: "Clube Atlético Mineiro", shortName: "Atlético-MG" };
     const crest = data.crest || "https://media.api-sports.io/football/teams/1062.png";
-    $("#clubCrest").innerHTML = `<img src="${esc(crest)}" alt="Escudo do Atlético-MG" style="width:34px;height:34px;object-fit:contain;display:block">`;
+    const cc = $("#clubCrest");
+    if(cc) cc.innerHTML = `<img src="${esc(crest)}" alt="Escudo do Atlético-MG" style="width:34px;height:34px;object-fit:contain;display:block">`;
   } catch(e) {
     errors.push(`ESPN: ${e.message}`);
   }
@@ -329,13 +334,20 @@ function updateNotice(){
 
   const combined = new Map();
   apiMatches.forEach(m => combined.set(matchIdentity(m), m));
-  manualMatches.forEach(m => { const key = matchIdentity(m); if(!combined.has(key)) combined.set(key, m); });
+  manualMatches.forEach(m => {
+    const key = matchIdentity(m);
+    const existing = combined.get(key);
+    if(!existing){ combined.set(key, m); return; }
+    // Se o jogo cadastrado tem transmissão e o da ESPN não, aproveita a do cadastro
+    if(m.broadcasts?.length && !existing.broadcasts?.length) existing.broadcasts = m.broadcasts;
+  });
 
   state.matches = [...combined.values()].sort((a, b) => new Date(a.utcDate) - new Date(b.utcDate));
   renderAll();
 
   setConnection(errors.length === 0 ? "Dados atualizados" : state.matches.length ? "Dados parcialmente carregados" : "Falha na conexão");
   const apiCount = apiMatches.length, manualCount = manualMatches.length;
+
   if(errors.length){
     noticeText = `${state.matches.length} partidas carregadas (${apiCount} da ESPN e ${manualCount} do Supabase). ${errors.join(" | ")}`;
   }else if(!state.matches.length){
@@ -343,8 +355,8 @@ function updateNotice(){
   }else{
     noticeText = `Calendário carregado: ${state.matches.length} partidas — ${apiCount} da ESPN e ${manualCount} cadastradas no Supabase.`;
   }
-  updateNotice(); 
-  $("#refreshBtn").disabled = false;
+  updateNotice();
+  if(rb) rb.disabled = false;
 }
 
 // ---------- Desenho na tela ----------
@@ -358,7 +370,6 @@ function renderSummary(){
   $("#nextMatchDate").textContent=next?localDate(next.utcDate,{day:"2-digit",month:"short"}):"—";
   $("#nextMatchOpponent").textContent=next?`${next.homeTeam?.shortName||next.homeTeam?.name} x ${next.awayTeam?.shortName||next.awayTeam?.name}`:"Nenhum jogo futuro encontrado";
   $("#competitionCount").textContent=new Set(ms.map(m=>m.competition?.code||m.competition?.name).filter(Boolean)).size;
-  $("#listCount").textContent=`${ms.length} partidas`;
 }
 
 function renderCompetitionFilter(){
@@ -375,7 +386,7 @@ function renderCalendar(){
   const ms=visibleMatches(), byDate=new Map();
   ms.forEach(match=>{const k=matchDate(match);if(!byDate.has(k))byDate.set(k,[]);byDate.get(k).push(match)});
   const today=localDateKey(new Date().toISOString());
-  const label=(g)=>{const r=resultOf(g);return `<span role="button" tabindex="0" data-match-id="${esc(g.id)}" class="day-match-label match-calendar-clickable ${colorClass(g)}">${esc(g.competition?.label||g.competition?.code||"JOGO")} · ${esc(g.homeTeam?.shortName||g.homeTeam?.name||"—")} x ${esc(g.awayTeam?.shortName||g.awayTeam?.name||"—")}</span>`};
+  const label=(g)=>`<span class="day-match-label ${colorClass(g)}">${esc(g.competition?.label||g.competition?.code||"JOGO")} · ${esc(g.homeTeam?.shortName||g.homeTeam?.name||"—")} x ${esc(g.awayTeam?.shortName||g.awayTeam?.name||"—")}</span>`;
   let html="";
   for(let i=0;i<42;i++){
     const d=new Date(start);d.setDate(start.getDate()+i);
@@ -386,7 +397,6 @@ function renderCalendar(){
   }
   $("#calendarGrid").innerHTML=html;
   $("#calendarGrid").querySelectorAll("[data-date]").forEach(btn=>btn.addEventListener("click",()=>{state.selectedDate=btn.dataset.date;renderCalendar();renderSelectedDay()}));
-  bindMatchDetailClicks($("#calendarGrid"));
 }
 
 function renderSelectedDay(){
@@ -395,7 +405,6 @@ function renderSelectedDay(){
   const matches=visibleMatches().filter(m=>matchDate(m)===state.selectedDate);
   if(!matches.length){$("#selectedDayMatches").innerHTML='<p class="empty-state">Não há partidas do Atlético-MG nesta data com os filtros selecionados.</p>';return}
   $("#selectedDayMatches").innerHTML=matches.map(matchCard).join("");
-  bindMatchDetailClicks($("#selectedDayMatches"));
 }
 
 function matchCard(m){
@@ -403,29 +412,17 @@ function matchCard(m){
   const score=m.score?.fullTime;
   const hasScore=score?.home!=null&&score?.away!=null;
   const r=resultOf(m);
-  return `<article role="button" tabindex="0" aria-label="Ver detalhes de ${esc(h)} x ${esc(a)}" data-match-id="${esc(m.id)}" class="day-match match-clickable ${colorClass(m)}"><div class="match-comp">${esc(m.competition?.name||"Competição")}</div><div class="match-teams"><span>${esc(h)}</span><span class="versus">${hasScore?`${score.home} × ${score.away}`:"×"}</span><span>${esc(a)}</span></div><div class="match-meta"><span>${localTime(m.utcDate)} · ${esc(statusNames[m.status]||m.status||"—")} ${r?`<span class="result-badge ${r}">${resultLabel[r]}</span>`:""}</span><span>${esc(m.venue||"Estádio a confirmar")}</span></div><small class="match-open-hint">Ver detalhes ↗</small></article>`;
-}
-function colorClass(m){
-  const r = resultOf(m);
-  if(r) return `result-${r}`;
-  if(["SCHEDULED","TIMED"].includes(m.status)) return "status-scheduled";
-  return "";
+  return `<article class="day-match clickable ${colorClass(m)}" data-match-id="${esc(m.id)}" tabindex="0" title="Ver detalhes do jogo"><div class="match-comp">${esc(m.competition?.name||"Competição")}</div><div class="match-teams"><span>${esc(h)}</span><span class="versus">${hasScore?`${score.home} × ${score.away}`:"×"}</span><span>${esc(a)}</span></div><div class="match-meta"><span>${localTime(m.utcDate)} · ${esc(statusNames[m.status]||m.status||"—")} ${r?`<span class="result-badge ${r}">${resultLabel[r]}</span>`:""}</span><span>${esc(m.venue||"Estádio a confirmar")}</span></div></article>`;
 }
 
-function bindMatchDetailClicks(container){
-  if(!container) return;
-  container.querySelectorAll("[data-match-id]").forEach(el=>{
-    el.addEventListener("click",e=>{e.stopPropagation();openMatchDetails(el.dataset.matchId);});
-    el.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();openMatchDetails(el.dataset.matchId);}});
-  });
-}
-
+// Lista: só jogos finalizados, do mais recente para o mais antigo
 function renderList(){
   const matches=state.matches
     .filter(m=>m.status==="FINISHED" && (state.competition==="all"||m.competition?.code===state.competition))
     .sort((a,b)=>new Date(b.utcDate)-new Date(a.utcDate));
-  $("#listCount").textContent=`${matches.length} partidas finalizadas`;
-  if(!matches.length){$("#matchesList").innerHTML='<p class="empty-state">Nenhuma partida finalizada encontrada.</p>';return}
+  const lc=$("#listCount"); if(lc) lc.textContent=`${matches.length} partidas finalizadas`;
+  const box=$("#matchesList"); if(!box) return;
+  if(!matches.length){box.innerHTML='<p class="empty-state">Nenhuma partida finalizada encontrada.</p>';return}
   const grouped=new Map();
   matches.forEach(m=>{const key=matchDate(m);if(!grouped.has(key))grouped.set(key,[]);grouped.get(key).push(m)});
   let html="";
@@ -438,9 +435,147 @@ function renderList(){
       html+=`<article class="list-match clickable ${colorClass(m)}" data-match-id="${esc(m.id)}" tabindex="0"><div class="list-date">${localTime(m.utcDate)}<small class="status-tag">${esc(statusNames[m.status]||m.status||"—")}</small></div><div class="list-teams">${esc(h)} <span style="color:#888">×</span> ${esc(a)}<small>${esc(m.venue||"Estádio a confirmar")}</small></div><div class="list-comp">${esc(m.competition?.name||"Competição")}</div><div class="list-score">${has?`${s.home} × ${s.away}`:"—"}${r?`<span class="result-badge ${r}">${resultLabel[r]}</span>`:""}</div></article>`;
     });
   });
-  $("#matchesList").innerHTML=html;
+  box.innerHTML=html;
 }
 
+// ---------- Detalhes do jogo (janela ao clicar) ----------
+const detailCache = new Map();
+let currentModalId = null;
+
+function buildModal(){
+  const el = document.createElement("div");
+  el.id = "matchModal"; el.className = "modal hidden";
+  el.innerHTML = `<div class="modal-backdrop" data-close></div>
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <button class="modal-close" data-close aria-label="Fechar">×</button>
+      <div id="modalBody"></div>
+    </div>`;
+  document.body.appendChild(el);
+  el.addEventListener("click", e => { if(e.target.closest("[data-close]")) closeModal(); });
+  document.addEventListener("keydown", e => { if(e.key === "Escape") closeModal(); });
+}
+
+function closeModal(){
+  currentModalId = null;
+  $("#matchModal")?.classList.add("hidden");
+}
+
+// Confrontos já presentes no calendário (plano B quando a ESPN não traz histórico)
+function h2hFromSeason(m){
+  const opp = isGalo(m.homeTeam) ? m.awayTeam : m.homeTeam;
+  const key = normalizeName(opp?.name);
+  if(!key) return [];
+  return state.matches
+    .filter(x => x.id !== m.id && x.status === "FINISHED" &&
+      x.score?.fullTime?.home != null && x.score?.fullTime?.away != null &&
+      [x.homeTeam, x.awayTeam].some(t => normalizeName(t?.name) === key))
+    .map(x => ({
+      data: x.utcDate, casa: x.homeTeam?.name, fora: x.awayTeam?.name,
+      golsCasa: x.score.fullTime.home, golsFora: x.score.fullTime.away,
+      competicao: x.competition?.name
+    }))
+    .sort((a, b) => new Date(b.data) - new Date(a.data));
+}
+
+function h2hResult(ev){
+  if(ev.golsCasa == null || ev.golsFora == null) return null;
+  const casa = isGalo({name: ev.casa}), fora = isGalo({name: ev.fora});
+  if(!casa && !fora) return null;
+  if(ev.golsCasa === ev.golsFora) return "draw";
+  return (casa ? ev.golsCasa > ev.golsFora : ev.golsFora > ev.golsCasa) ? "win" : "loss";
+}
+
+function h2hSection(m, det, loading){
+  if(loading) return `<p class="modal-muted">Carregando histórico…</p>`;
+  let eventos = det?.h2h || [];
+  let fonte = "ESPN";
+  if(!eventos.length){
+    eventos = h2hFromSeason(m);
+    fonte = "jogos já carregados no calendário (temporada atual)";
+  }
+  if(!eventos.length) return `<p class="modal-muted">Sem histórico de confrontos disponível.</p>`;
+  let v = 0, e = 0, d = 0;
+  const rows = eventos.map(ev => {
+    const r = h2hResult(ev);
+    if(r === "win") v++; else if(r === "draw") e++; else if(r === "loss") d++;
+    const placar = ev.golsCasa != null && ev.golsFora != null ? `${ev.golsCasa} × ${ev.golsFora}` : "—";
+    return `<li class="h2h-row ${r ? `result-${r}` : ""}">
+      <span class="h2h-date">${esc(localDate(ev.data, {day:"2-digit",month:"2-digit",year:"numeric"}))}</span>
+      <span class="h2h-teams">${esc(ev.casa || "—")} <b>${placar}</b> ${esc(ev.fora || "—")}</span>
+      <span class="h2h-comp">${esc(ev.competicao || "")}</span>
+    </li>`;
+  }).join("");
+  const resumo = (v + e + d) ? `<p class="modal-sum">Do ponto de vista do Galo: <b class="win">${v} vitória(s)</b>, <b class="draw">${e} empate(s)</b>, <b class="loss">${d} derrota(s)</b></p>` : "";
+  return `${resumo}<ul class="h2h-list">${rows}</ul><p class="modal-muted">Fonte: ${esc(fonte)}.</p>`;
+}
+
+function modalHTML(m, det, loading){
+  const h = m.homeTeam, a = m.awayTeam, s = m.score?.fullTime;
+  const has = s?.home != null && s?.away != null, r = resultOf(m);
+  const crest = (t) => t?.crest ? `<img class="modal-crest" src="${esc(t.crest)}" alt="">` : "";
+  const local = [det?.venue?.name || m.venue, det?.venue?.city].filter(Boolean).join(" · ");
+  const canais = (det?.broadcasts?.length ? det.broadcasts : m.broadcasts) || [];
+  const dataTxt = localDate(m.utcDate, {weekday:"long", day:"2-digit", month:"long", year:"numeric"});
+  const aviso = det?.erro ? `<p class="modal-muted">Não foi possível carregar todos os detalhes (${esc(det.erro)}).</p>` : "";
+  const notaCanal = m.source === "espn" && canais.length ? `<small class="modal-muted">Canais informados pela ESPN (podem ser de outro país).</small>` : "";
+  return `
+    <div class="modal-head">
+      <div class="modal-comp">${esc(m.competition?.name || "Competição")}</div>
+      <div class="modal-teams">
+        <div class="modal-team">${crest(h)}<span>${esc(h?.name || h?.shortName || "—")}</span></div>
+        <div class="modal-score">${has ? `${s.home} × ${s.away}` : "×"}</div>
+        <div class="modal-team">${crest(a)}<span>${esc(a?.name || a?.shortName || "—")}</span></div>
+      </div>
+      ${r ? `<span class="result-badge ${r}">${resultLabel[r]}</span>` : ""}
+    </div>
+    <dl class="modal-info">
+      <div><dt>Data</dt><dd>${esc(dataTxt)}</dd></div>
+      <div><dt>Horário</dt><dd>${esc(localTime(m.utcDate))} (Brasília)</dd></div>
+      <div><dt>Situação</dt><dd>${esc(statusNames[m.status] || m.status || "—")}</dd></div>
+      <div><dt>Local</dt><dd>${esc(local || "A confirmar")}</dd></div>
+      <div><dt>Transmissão</dt><dd>${canais.length ? esc(canais.join(", ")) : "Não informada"}${notaCanal ? "<br>" + notaCanal : ""}</dd></div>
+    </dl>
+    ${aviso}
+    <h4 class="modal-title">Histórico de confrontos</h4>
+    ${h2hSection(m, det, loading)}`;
+}
+
+async function openMatch(id){
+  const m = state.matches.find(x => x.id === id);
+  if(!m) return;
+  currentModalId = id;
+  $("#matchModal").classList.remove("hidden");
+  const body = $("#modalBody");
+
+  const canFetch = m.source === "espn" && m.eventId && m.liga;
+  if(!canFetch){ body.innerHTML = modalHTML(m, null, false); return; }
+  if(detailCache.has(id)){ body.innerHTML = modalHTML(m, detailCache.get(id), false); return; }
+
+  body.innerHTML = modalHTML(m, null, true);
+  try{
+    const res = await fetch(`/api/jogo?event=${encodeURIComponent(m.eventId)}&liga=${encodeURIComponent(m.liga)}`);
+    const det = await res.json().catch(() => ({}));
+    if(!res.ok) throw new Error(det.error || `HTTP ${res.status}`);
+    detailCache.set(id, det);
+    if(currentModalId === id) body.innerHTML = modalHTML(m, det, false);
+  }catch(err){
+    if(currentModalId === id) body.innerHTML = modalHTML(m, { erro: err.message }, false);
+  }
+}
+
+// Clique (ou Enter) em qualquer jogo abre os detalhes
+document.addEventListener("click", e => {
+  const card = e.target.closest("[data-match-id]");
+  if(card) openMatch(card.dataset.matchId);
+});
+document.addEventListener("keydown", e => {
+  if(e.key !== "Enter") return;
+  const card = e.target.closest?.("[data-match-id]");
+  if(card) openMatch(card.dataset.matchId);
+});
+
+// ---------- Trocar de aba ----------
+// Descobre o bloco do calendário (grade + painel "Partidas do dia") para esconder na Lista
 function calendarParts(){
   const parts=[];
   const cv=$("#calendarView"); if(cv) parts.push(cv);
@@ -450,7 +585,7 @@ function calendarParts(){
     if(el && el!==document.body && !(lv&&el.contains(lv))) parts.push(el);
     else parts.push(g.parentElement, s.parentElement);
   }
-  return parts.filter(Boolean);
+  return [...new Set(parts.filter(Boolean))];
 }
 
 function setView(view){
@@ -465,13 +600,13 @@ function setView(view){
   toggle($("#addView"),view==="add");
   document.querySelectorAll("[data-view]").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
   if(view==="add") renderAddView();
-  if(view==="list") setTimeout(()=>document.getElementById("lista-alvo")?.scrollIntoView({block:"start"}),0);
-  else window.scrollTo({top:0});
+  window.scrollTo({top:0});
 }
 
 // ---------- Inicialização ----------
-installMatchModal();
+injectStyles();
 buildAddUI();
+buildModal();
 
 document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view)));
 $("#prevMonth").addEventListener("click",()=>{state.month.setMonth(state.month.getMonth()-1);renderCalendar()});
@@ -483,9 +618,8 @@ $("#refreshBtn").addEventListener("click",loadMatches);
 document.querySelectorAll(".nav-item").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view)));
 
 loadMatches();
+
 // ---------- Animação de entrada (sem som) ----------
-// Cole este bloco no FINAL do script.js (depois de loadMatches();).
-// Não precisa mexer no HTML nem no CSS: o estilo é injetado por aqui.
 (function intro(){
   // Mostra uma vez por sessão
   if(sessionStorage.getItem("intro_visto")) return;
@@ -523,7 +657,7 @@ loadMatches();
   el.setAttribute("aria-hidden", "true");
   el.innerHTML = `
     <div class="intro-inner">
-      <div class="intro-letters">${"GALODAY".split("").map((l, i) =>
+      <div class="intro-letters">${"GALO".split("").map((l, i) =>
         `<span style="animation-delay:${0.2 + i * 0.18}s">${l}</span>`).join("")}<i>.</i></div>
       <div class="intro-line"></div>
       <p class="intro-sub">Calendário de jogos · Atlético-MG</p>
@@ -542,7 +676,7 @@ loadMatches();
     }, 800);
   }
 
-  setTimeout(fechar, 2800);           // fecha sozinha
+  setTimeout(fechar, 2800);             // fecha sozinha
   el.addEventListener("click", fechar); // ou ao clicar
   document.addEventListener("keydown", e => { if(e.key === "Escape") fechar(); });
 })();
