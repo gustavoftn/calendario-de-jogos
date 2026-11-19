@@ -79,8 +79,19 @@ module.exports = async function handler(req, res) {
     // 2) Agenda do Galo em cada competição
     const resultados = await Promise.allSettled(
       LIGAS.map(async (liga) => {
-        const json = await getJson(`${BASE}/${liga.codigo}/teams/${teamId}/schedule`);
-        return (json.events || []).map((e) => {
+        const base = `${BASE}/${liga.codigo}/teams/${teamId}/schedule`;
+        const [passados, futuros] = await Promise.allSettled([
+          getJson(base),
+          getJson(`${base}?fixture=true`),
+        ]);
+        if (passados.status === "rejected" && futuros.status === "rejected") {
+          throw passados.reason;
+        }
+        const eventos = [
+          ...(passados.status === "fulfilled" ? passados.value.events || [] : []),
+          ...(futuros.status === "fulfilled" ? futuros.value.events || [] : []),
+        ];
+        return eventos.map((e) => {
           const comp = e.competitions?.[0] || {};
           const casa = comp.competitors?.find((c) => c.homeAway === "home");
           const fora = comp.competitors?.find((c) => c.homeAway === "away");
