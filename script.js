@@ -49,6 +49,83 @@ async function api(params) {
   return data;
 }
 
+// ---------- Detalhes da partida ----------
+const HISTORY_API = "/api/history";
+const DETAILS_API = "/api/match-details";
+
+function installMatchModal(){
+  if(document.getElementById("matchDetailsModal")) return;
+  const style = document.createElement("style");
+  style.textContent = `
+    .match-modal-backdrop{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.76);display:flex;align-items:center;justify-content:center;padding:18px;backdrop-filter:blur(7px)}
+    .match-modal{width:min(680px,100%);max-height:min(88vh,900px);overflow:auto;background:#151515;color:#f5f5f5;border:1px solid #303030;border-radius:20px;box-shadow:0 24px 80px #0009}
+    .match-modal-head{display:flex;align-items:center;justify-content:space-between;padding:20px 22px;border-bottom:1px solid #2b2b2b;position:sticky;top:0;background:#151515;z-index:2}
+    .match-modal-head h2{font:800 18px Manrope, sans-serif;margin:0}.match-modal-close{border:0;background:#292929;color:#fff;border-radius:50%;width:36px;height:36px;font-size:22px;cursor:pointer}
+    .match-modal-body{padding:22px}.match-modal-comp{color:#a4c639;text-transform:uppercase;font-size:11px;font-weight:800;letter-spacing:1.3px;text-align:center}
+    .match-modal-score{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin:20px 0 24px}.match-modal-team{text-align:center;min-width:0}.match-modal-team img{width:54px;height:54px;object-fit:contain;display:block;margin:0 auto 9px}.match-modal-team strong{font-size:14px;display:block;overflow-wrap:anywhere}.match-modal-result{font-size:27px;font-weight:800;white-space:nowrap}.match-modal-time{text-align:center;color:#aaa;font-size:12px;margin-top:7px}
+    .match-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}.match-info-item{background:#202020;border:1px solid #303030;border-radius:12px;padding:13px}.match-info-item span{display:block;color:#999;font-size:10px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}.match-info-item strong{font-size:13px;line-height:1.45;overflow-wrap:anywhere}
+    .match-modal-section{border-top:1px solid #303030;padding-top:18px;margin-top:18px}.match-modal-section h3{font:800 13px Manrope,sans-serif;margin:0 0 13px}.match-broadcast{display:inline-flex;background:#252b18;color:#d8ee8c;border:1px solid #46531f;border-radius:8px;padding:7px 10px;margin:0 6px 6px 0;font-size:12px}.match-h2h-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.match-h2h-stat{background:#202020;border-radius:10px;padding:12px;text-align:center}.match-h2h-stat strong{display:block;font-size:22px}.match-h2h-stat span{font-size:10px;color:#aaa}.match-h2h-list{list-style:none;padding:0;margin:12px 0 0}.match-h2h-list li{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #292929;font-size:12px}.match-modal-muted{color:#999;font-size:12px;line-height:1.5}.match-modal-loading{color:#aaa;text-align:center;padding:18px}.match-clickable{cursor:pointer}.match-clickable:hover{filter:brightness(1.15)}.match-open-hint{display:block;text-align:right;color:#a4c639;font-size:10px;margin-top:8px;font-weight:700}.match-calendar-clickable{cursor:pointer}
+    @media(max-width:520px){.match-modal-backdrop{padding:8px}.match-modal{border-radius:15px}.match-modal-body{padding:16px}.match-info-grid{grid-template-columns:1fr}.match-modal-score{gap:5px}.match-modal-result{font-size:21px}.match-modal-team strong{font-size:12px}}
+  `;
+  document.head.appendChild(style);
+  const modal = document.createElement("div");
+  modal.id = "matchDetailsModal";
+  modal.className = "match-modal-backdrop hidden";
+  modal.setAttribute("aria-hidden","true");
+  modal.innerHTML = `<section class="match-modal" role="dialog" aria-modal="true" aria-labelledby="matchModalTitle"><header class="match-modal-head"><h2 id="matchModalTitle">Detalhes da partida</h2><button class="match-modal-close" type="button" aria-label="Fechar">×</button></header><div class="match-modal-body" id="matchModalBody"></div></section>`;
+  document.body.appendChild(modal);
+  modal.addEventListener("click", e=>{if(e.target===modal || e.target.closest(".match-modal-close")) closeMatchDetails();});
+  document.addEventListener("keydown", e=>{if(e.key==="Escape") closeMatchDetails();});
+}
+
+function closeMatchDetails(){
+  const modal=$("#matchDetailsModal");
+  if(!modal) return;
+  modal.classList.add("hidden"); modal.setAttribute("aria-hidden","true");
+}
+
+function matchTeamName(team){return team?.name || team?.shortName || "Equipe";}
+function renderHistory(history, match){
+  if(!history) return `<p class="match-modal-muted">Histórico indisponível para esta partida.</p>`;
+  if(history.message) return `<p class="match-modal-muted">${esc(history.message)}</p>`;
+  const stats=history.stats || {};
+  const recent=Array.isArray(history.matches)?history.matches:[];
+  const list=recent.length?`<ul class="match-h2h-list">${recent.slice(0,10).map(g=>`<li><span>${esc(localDate(g.utcDate,{day:"2-digit",month:"short",year:"numeric"}))} · ${esc(g.homeTeam||"—")} x ${esc(g.awayTeam||"—")}</span><strong>${g.homeGoals ?? "-"} × ${g.awayGoals ?? "-"}</strong></li>`).join("")}</ul>`:"";
+  if(stats.homeWins==null && stats.draws==null && stats.awayWins==null && !recent.length) return `<p class="match-modal-muted">A API não retornou confrontos anteriores.</p>`;
+  return `<div class="match-h2h-stats"><div class="match-h2h-stat"><strong>${stats.homeWins ?? 0}</strong><span>Vitórias ${esc(matchTeamName(match.homeTeam))}</span></div><div class="match-h2h-stat"><strong>${stats.draws ?? 0}</strong><span>Empates</span></div><div class="match-h2h-stat"><strong>${stats.awayWins ?? 0}</strong><span>Vitórias ${esc(matchTeamName(match.awayTeam))}</span></div></div>${list}<p class="match-modal-muted">${history.totalMatches ?? recent.length ?? 0} confrontos considerados. Dados: football-data.org.</p>`;
+}
+
+async function openMatchDetails(matchId){
+  const match=state.matches.find(m=>String(m.id)===String(matchId));
+  if(!match) return;
+  installMatchModal();
+  const modal=$("#matchDetailsModal"), body=$("#matchModalBody");
+  const home=match.homeTeam||{}, away=match.awayTeam||{}, score=match.score?.fullTime;
+  const hasScore=score?.home!=null && score?.away!=null;
+  const hLogo=home.crest||home.logo||"", aLogo=away.crest||away.logo||"";
+  $("#matchModalTitle").textContent=`${matchTeamName(home)} x ${matchTeamName(away)}`;
+  modal.classList.remove("hidden"); modal.setAttribute("aria-hidden","false");
+  body.innerHTML=`<div class="match-modal-comp">${esc(match.competition?.name||"Partida")}</div><div class="match-modal-score"><div class="match-modal-team">${hLogo?`<img src="${esc(hLogo)}" alt="">`:""}<strong>${esc(matchTeamName(home))}</strong></div><div><div class="match-modal-result">${hasScore?`${score.home} × ${score.away}`:"VS"}</div><div class="match-modal-time">${esc(localTime(match.utcDate))} · ${esc(statusNames[match.status]||match.status||"A confirmar")}</div></div><div class="match-modal-team">${aLogo?`<img src="${esc(aLogo)}" alt="">`:""}<strong>${esc(matchTeamName(away))}</strong></div></div><div class="match-info-grid"><div class="match-info-item"><span>Data e horário</span><strong>${esc(localDate(match.utcDate,{weekday:"long",day:"2-digit",month:"long",year:"numeric"}))}<br>${esc(localTime(match.utcDate))} · Brasília</strong></div><div class="match-info-item"><span>Estádio</span><strong id="matchVenue">${esc(match.venue||"A confirmar")}</strong></div><div class="match-info-item"><span>Cidade</span><strong id="matchCity">Consultando ESPN…</strong></div><div class="match-info-item"><span>Transmissão</span><strong id="matchBroadcast">Consultando ESPN…</strong></div></div><section class="match-modal-section"><h3>Histórico de confrontos</h3><div id="matchHistory" class="match-modal-loading">Consultando football-data.org…</div></section>`;
+
+  const requests=[];
+  if(match.eventId && match.leagueCode){
+    requests.push(fetch(`${DETAILS_API}?event=${encodeURIComponent(match.eventId)}&league=${encodeURIComponent(match.leagueCode)}`).then(r=>r.json().then(d=>{if(!r.ok) throw new Error(d.error||"Falha ao consultar ESPN");return d;})).then(data=>{
+      const city=data.city || data.venue?.city || "Não informado pela ESPN";
+      const venue=data.venue?.name || data.venueName || match.venue || "A confirmar";
+      const broadcasts=Array.isArray(data.broadcasts)?data.broadcasts:[];
+      $("#matchVenue").textContent=venue; $("#matchCity").textContent=city;
+      $("#matchBroadcast").innerHTML=broadcasts.length?broadcasts.map(b=>`<span class="match-broadcast">${esc(typeof b==="string"?b:(b.name||b.shortName||b.market||"Transmissão"))}</span>`).join(""):'<span class="match-modal-muted">Não informado pela ESPN</span>';
+    }).catch(()=>{$("#matchCity").textContent="Não disponível";$("#matchBroadcast").textContent="Não informado pela ESPN";}));
+  } else {
+    $("#matchCity").textContent="Não informado"; $("#matchBroadcast").textContent="Não disponível para jogos manuais";
+  }
+  if(home.name && away.name){
+    const qs=new URLSearchParams({home:home.name,away:away.name,date:match.utcDate||""});
+    requests.push(fetch(`${HISTORY_API}?${qs}`).then(r=>r.json().then(d=>{if(!r.ok) throw new Error(d.error||"Falha ao consultar histórico");return d;})).then(data=>{$("#matchHistory").innerHTML=renderHistory(data,match);}).catch(err=>{$("#matchHistory").innerHTML=`<p class="match-modal-muted">${esc(err.message||"Histórico indisponível")}</p>`;}));
+  } else $("#matchHistory").textContent="Não há equipes suficientes para consultar o histórico.";
+  await Promise.allSettled(requests);
+}
+
 function showNotice(msg){$("#notice").textContent=msg;$("#notice").classList.remove("hidden")}
 function hideNotice(){$("#notice").classList.add("hidden")}
 function setConnection(text){$("#connectionText").textContent=text}
@@ -298,7 +375,7 @@ function renderCalendar(){
   const ms=visibleMatches(), byDate=new Map();
   ms.forEach(match=>{const k=matchDate(match);if(!byDate.has(k))byDate.set(k,[]);byDate.get(k).push(match)});
   const today=localDateKey(new Date().toISOString());
-  const label=(g)=>{const r=resultOf(g);return `<span class="day-match-label ${colorClass(g)}">${esc(g.competition?.label||g.competition?.code||"JOGO")} · ${esc(g.homeTeam?.shortName||g.homeTeam?.name||"—")} x ${esc(g.awayTeam?.shortName||g.awayTeam?.name||"—")}</span>`};
+  const label=(g)=>{const r=resultOf(g);return `<span role="button" tabindex="0" data-match-id="${esc(g.id)}" class="day-match-label match-calendar-clickable ${colorClass(g)}">${esc(g.competition?.label||g.competition?.code||"JOGO")} · ${esc(g.homeTeam?.shortName||g.homeTeam?.name||"—")} x ${esc(g.awayTeam?.shortName||g.awayTeam?.name||"—")}</span>`};
   let html="";
   for(let i=0;i<42;i++){
     const d=new Date(start);d.setDate(start.getDate()+i);
@@ -309,6 +386,7 @@ function renderCalendar(){
   }
   $("#calendarGrid").innerHTML=html;
   $("#calendarGrid").querySelectorAll("[data-date]").forEach(btn=>btn.addEventListener("click",()=>{state.selectedDate=btn.dataset.date;renderCalendar();renderSelectedDay()}));
+  bindMatchDetailClicks($("#calendarGrid"));
 }
 
 function renderSelectedDay(){
@@ -317,6 +395,7 @@ function renderSelectedDay(){
   const matches=visibleMatches().filter(m=>matchDate(m)===state.selectedDate);
   if(!matches.length){$("#selectedDayMatches").innerHTML='<p class="empty-state">Não há partidas do Atlético-MG nesta data com os filtros selecionados.</p>';return}
   $("#selectedDayMatches").innerHTML=matches.map(matchCard).join("");
+  bindMatchDetailClicks($("#selectedDayMatches"));
 }
 
 function matchCard(m){
@@ -324,13 +403,21 @@ function matchCard(m){
   const score=m.score?.fullTime;
   const hasScore=score?.home!=null&&score?.away!=null;
   const r=resultOf(m);
-  return `<article class="day-match ${colorClass(m)}"><div class="match-comp">${esc(m.competition?.name||"Competição")}</div><div class="match-teams"><span>${esc(h)}</span><span class="versus">${hasScore?`${score.home} × ${score.away}`:"×"}</span><span>${esc(a)}</span></div><div class="match-meta"><span>${localTime(m.utcDate)} · ${esc(statusNames[m.status]||m.status||"—")} ${r?`<span class="result-badge ${r}">${resultLabel[r]}</span>`:""}</span><span>${esc(m.venue||"Estádio a confirmar")}</span></div></article>`;
+  return `<article role="button" tabindex="0" aria-label="Ver detalhes de ${esc(h)} x ${esc(a)}" data-match-id="${esc(m.id)}" class="day-match match-clickable ${colorClass(m)}"><div class="match-comp">${esc(m.competition?.name||"Competição")}</div><div class="match-teams"><span>${esc(h)}</span><span class="versus">${hasScore?`${score.home} × ${score.away}`:"×"}</span><span>${esc(a)}</span></div><div class="match-meta"><span>${localTime(m.utcDate)} · ${esc(statusNames[m.status]||m.status||"—")} ${r?`<span class="result-badge ${r}">${resultLabel[r]}</span>`:""}</span><span>${esc(m.venue||"Estádio a confirmar")}</span></div><small class="match-open-hint">Ver detalhes ↗</small></article>`;
 }
 function colorClass(m){
   const r = resultOf(m);
   if(r) return `result-${r}`;
   if(["SCHEDULED","TIMED"].includes(m.status)) return "status-scheduled";
   return "";
+}
+
+function bindMatchDetailClicks(container){
+  if(!container) return;
+  container.querySelectorAll("[data-match-id]").forEach(el=>{
+    el.addEventListener("click",e=>{e.stopPropagation();openMatchDetails(el.dataset.matchId);});
+    el.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();openMatchDetails(el.dataset.matchId);}});
+  });
 }
 
 function renderList(){
@@ -348,10 +435,11 @@ function renderList(){
     items.forEach(m=>{
       const h=m.homeTeam?.shortName||m.homeTeam?.name||"—",a=m.awayTeam?.shortName||m.awayTeam?.name||"—",s=m.score?.fullTime;
       const has=s?.home!=null&&s?.away!=null, r=resultOf(m);
-      html+=`<article class="list-match ${colorClass(m)}"><div class="list-date">${localTime(m.utcDate)}<small class="status-tag">${esc(statusNames[m.status]||m.status||"—")}</small></div><div class="list-teams">${esc(h)} <span style="color:#888">×</span> ${esc(a)}<small>${esc(m.venue||"Estádio a confirmar")}</small></div><div class="list-comp">${esc(m.competition?.name||"Competição")}</div><div class="list-score">${has?`${s.home} × ${s.away}`:"—"}${r?`<span class="result-badge ${r}">${resultLabel[r]}</span>`:""}</div></article>`;
+      html+=`<article role="button" tabindex="0" data-match-id="${esc(m.id)}" class="list-match match-clickable ${colorClass(m)}"><div class="list-date">${localTime(m.utcDate)}<small class="status-tag">${esc(statusNames[m.status]||m.status||"—")}</small></div><div class="list-teams">${esc(h)} <span style="color:#888">×</span> ${esc(a)}<small>${esc(m.venue||"Estádio a confirmar")}</small></div><div class="list-comp">${esc(m.competition?.name||"Competição")}</div><div class="list-score">${has?`${s.home} × ${s.away}`:"—"}${r?`<span class="result-badge ${r}">${resultLabel[r]}</span>`:""}</div></article>`;
     });
   });
   $("#matchesList").innerHTML=html;
+  bindMatchDetailClicks($("#matchesList"));
 }
 
 function setView(view){
@@ -365,6 +453,7 @@ function setView(view){
 }
 
 // ---------- Inicialização ----------
+installMatchModal();
 buildAddUI();
 
 document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view)));

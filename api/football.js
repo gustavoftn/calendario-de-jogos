@@ -100,12 +100,16 @@ module.exports = async function handler(req, res) {
 
           return {
             id: `espn-${e.id}`,
+            eventId: String(e.id),
+            leagueCode: liga.codigo,
             utcDate: new Date(e.date || comp.date).toISOString(),
             status: mapStatus(tipo),
             homeTeam: time(casa),
             awayTeam: time(fora),
             competition: { name: liga.nome, code: liga.sigla },
             venue: comp.venue?.fullName || "Estádio a confirmar",
+            venueCity: comp.venue?.address?.city || comp.venue?.city || null,
+            venueCountry: comp.venue?.address?.country || null,
             score: {
               fullTime: {
                 home: comPlacar ? lerGols(casa?.score) : null,
