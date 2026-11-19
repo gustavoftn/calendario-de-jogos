@@ -1,5 +1,5 @@
 const API_BASE = "/api/football";
-// Supabase: chave publicável. A proteção dos dados é feita pelas políticas RLS.
+// Supabase: chave publicável. A proteção dos dados é feita pela políticas RLS.
 const SUPABASE_URL = "https://pxjgybtipdgxamchzpbh.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_fK6QyLga4HbsRg104vg_Iw_6UCsXXbB";
 
