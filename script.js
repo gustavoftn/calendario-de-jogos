@@ -65,6 +65,7 @@ async function loadManualMatches(){
       "suspenso":"SUSPENDED", "cancelado":"CANCELLED"
     };
     const status = statusMap[normalizeName(row.status)] || "SCHEDULED";
+    
     const hasScore = row.gols_mandante !== null && row.gols_mandante !== undefined &&
       row.gols_visitante !== null && row.gols_visitante !== undefined;
     return {
@@ -94,7 +95,7 @@ async function loadMatches(){
     const teams = teamsData.teams || [];
     const team = teams.find(t => {
       const n=normalizeName(`${t.name} ${t.shortName||""}`);
-      return n.includes("atletico mineiro") || n.includes("atletico-mg") || n.includes("atletico mg");
+      return n.includes("atletico mineiro") || n.includes("atletico-mg") || n.includes("atletico mg")|| n.includes("clube atletico mineiro") || n.includes("clube atletico-mg") || n.includes("CA Mineiro");
     });
     if(!team) throw new Error("Não encontrei o Atlético-MG na lista de clubes da Série A da Football-Data.org.");
     state.team=team;
