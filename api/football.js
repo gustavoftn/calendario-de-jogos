@@ -1,96 +1,101 @@
-// Vercel Serverless Function — proxy seguro para API-Football (v3.football.api-sports.io)
-const BASE = "https://v3.football.api-sports.io";
+const LIGAS = [
+  { nome: "Brasileirão Série A", sigla: "BRA", codigo: "bra.1" },
+  { nome: "Copa do Brasil", sigla: "CDB", codigo: "bra.copa_do_brazil" },
+  { nome: "Copa Libertadores", sigla: "LIB", codigo: "conmebol.libertadores" },
+  { nome: "Copa Sul-Americana", sigla: "SUL", codigo: "conmebol.sudamericana" },
+];
 
-const STATUS_MAP = {
-  TBD: "SCHEDULED",
-  NS: "TIMED",
-  "1H": "IN_PLAY",
-  HT: "PAUSED",
-  "2H": "IN_PLAY",
-  ET: "IN_PLAY",
-  BT: "PAUSED",
-  P: "IN_PLAY",
-  SUSP: "SUSPENDED",
-  INT: "SUSPENDED",
-  FT: "FINISHED",
-  AET: "FINISHED",
-  PEN: "FINISHED",
-  PST: "POSTPONED",
-  CANC: "CANCELLED",
-  ABD: "CANCELLED",
-  AWD: "AWARDED",
-  WO: "AWARDED"
-};
+const norm = (s) =>
+  String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-export default async function handler(req, res) {
-  const key = process.env.API_FOOTBALL_KEY;
-  if (!key) {
-    return res.status(500).json({ error: "Configure a variável API_FOOTBALL_KEY na Vercel." });
-  }
+const ehGalo = (t) =>
+  [t?.displayName, t?.shortDisplayName, t?.name, t?.location].some((n) =>
+    /atletico[\s-]*(mg|mineiro)/.test(norm(n))
+  );
 
-  const q = req.query || {};
-  // 1062 é o ID oficial do Atlético-MG na API-Football
-  const teamId = /^\d+$/.test(String(q.id || "")) ? String(q.id) : "1062";
-  const season = /^\d{4}$/.test(String(q.season || ""))
-    ? String(q.season)
-    : String(new Date().getFullYear());
+function mapStatus(tipo) {
+  const mapa = {
+    STATUS_SCHEDULED: "TIMED",
+    STATUS_IN_PROGRESS: "IN_PLAY",
+    STATUS_FIRST_HALF: "IN_PLAY",
+    STATUS_SECOND_HALF: "IN_PLAY",
+    STATUS_EXTRA_TIME: "IN_PLAY",
+    STATUS_HALFTIME: "PAUSED",
+    STATUS_FINAL: "FINISHED",
+    STATUS_FULL_TIME: "FINISHED",
+    STATUS_FINAL_AET: "FINISHED",
+    STATUS_FINAL_PEN: "FINISHED",
+    STATUS_POSTPONED: "POSTPONED",
+    STATUS_SUSPENDED: "SUSPENDED",
+    STATUS_CANCELED: "CANCELLED",
+    STATUS_ABANDONED: "CANCELLED",
+  };
+  if (mapa[tipo?.name]) return mapa[tipo.name];
+  if (tipo?.state === "post") return "FINISHED";
+  if (tipo?.state === "in") return "IN_PLAY";
+  return "SCHEDULED";
+}
 
-  try {
-    const response = await fetch(`${BASE}/fixtures?team=${teamId}&season=${season}`, {
-  headers: {
-    "x-apisports-key": key,
-    "Accept": "application/json"
-  }
+const time = (c) => ({
+  name: c?.team?.displayName,
+  shortName: c?.team?.shortDisplayName || c?.team?.displayName,
+  crest: c?.team?.logo || null,
 });
 
-    const data = await response.json().catch(() => ({}));
+module.exports = async function handler(req, res) {
+  const todos = req.query?.todos === "1"; // modo diagnóstico: não filtra por time
+  const ano = new Date().getFullYear();
+  const datas = `${ano}0101-${ano}1231`;
+  let crest = null;
 
-    if (!response.ok || (data.errors && Object.keys(data.errors).length > 0)) {
-      const errMsg = typeof data.errors === "object"
-        ? Object.values(data.errors).join(" | ")
-        : `A API-Football retornou HTTP ${response.status}.`;
-      return res.status(response.status || 400).json({ error: errMsg });
-    }
+  const resultados = await Promise.allSettled(
+    LIGAS.map(async (liga) => {
+      const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${liga.codigo}/scoreboard?dates=${datas}&limit=1000`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`${liga.nome} (HTTP ${r.status})`);
+      const json = await r.json();
 
-    // Normaliza o retorno da API-Football para o padrão do frontend
-    const matches = (data.response || []).map((item) => {
-      const f = item.fixture || {};
-      const l = item.league || {};
-      const t = item.teams || {};
-      const g = item.goals || {};
+      return (json.events || [])
+        .map((e) => {
+          const comp = e.competitions?.[0] || {};
+          const casa = comp.competitors?.find((c) => c.homeAway === "home");
+          const fora = comp.competitors?.find((c) => c.homeAway === "away");
+          if (!todos && !ehGalo(casa?.team) && !ehGalo(fora?.team)) return null;
 
-      return {
-        id: f.id,
-        utcDate: f.date,
-        status: STATUS_MAP[f.status?.short] || "SCHEDULED",
-        homeTeam: {
-          name: t.home?.name || "Mandante",
-          shortName: t.home?.name || "Mandante",
-          crest: t.home?.logo || null
-        },
-        awayTeam: {
-          name: t.away?.name || "Visitante",
-          shortName: t.away?.name || "Visitante",
-          crest: t.away?.logo || null
-        },
-        competition: {
-          name: l.name || "Competição",
-          code: `LIGA-${l.id || "0"}`
-        },
-        venue: f.venue?.name || "Estádio a confirmar",
-        score: {
-          fullTime: {
-            home: g.home ?? null,
-            away: g.away ?? null
+          if (!crest) {
+            if (ehGalo(casa?.team)) crest = casa.team.logo;
+            else if (ehGalo(fora?.team)) crest = fora.team.logo;
           }
-        }
-      };
-    });
 
-    // Cache de 15 minutos na borda da Vercel para economizar a cota gratuita de 100 req/dia
-    res.setHeader("Cache-Control", "public, s-maxage=900, stale-while-revalidate=1800");
-    return res.status(200).json({ matches });
-  } catch (error) {
-    return res.status(502).json({ error: "Não foi possível conectar à API-Football." });
-  }
-}
+          const tipo = e.status?.type;
+          const comPlacar = tipo?.state !== "pre";
+          const gols = (c) => (comPlacar && c?.score != null ? Number(c.score) : null);
+
+          return {
+            id: `espn-${e.id}`,
+            utcDate: new Date(e.date).toISOString(),
+            status: mapStatus(tipo),
+            homeTeam: time(casa),
+            awayTeam: time(fora),
+            competition: { name: liga.nome, code: liga.sigla },
+            venue: comp.venue?.fullName || "Estádio a confirmar",
+            score: { fullTime: { home: gols(casa), away: gols(fora) } },
+            source: "espn",
+          };
+        })
+        .filter(Boolean);
+    })
+  );
+
+  const matches = resultados
+    .filter((r) => r.status === "fulfilled")
+    .flatMap((r) => r.value)
+    .sort((a, b) => new Date(a.utcDate) - new Date(b.utcDate));
+
+  const errors = resultados
+    .filter((r) => r.status === "rejected")
+    .map((r) => String(r.reason?.message || r.reason));
+
+  res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
+  res.status(200).json({ matches, errors, crest });
+};

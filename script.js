@@ -92,7 +92,7 @@ async function loadManualMatches(){
 }
 
 function matchIdentity(m){
-  return [matchDate(m), normalizeName(m.homeTeam?.name), normalizeName(m.awayTeam?.name), normalizeName(m.competition?.name)].join("|");
+  return matchDate(m);
 }
 
 async function loadMatches(){
@@ -102,18 +102,16 @@ async function loadMatches(){
   let apiMatches = [];
   let manualMatches = [];
   
-  try {
-    // 1062 é o ID oficial do Atlético-MG na API-Football
-    const teamId = "1062";
-    const year = new Date().getFullYear();
-    const data = await api({id: teamId, season: String(year) });
-    
+    try {
+    const data = await api({});
     apiMatches = data.matches || [];
-    
-    state.team = { id: 1062, name: "Clube Atlético Mineiro", shortName: "Atlético-MG" };
-    $("#clubCrest").innerHTML = `<img src="https://media.api-sports.io/football/teams/1062.png" alt="Escudo do Atlético-MG">`;
+    if (data.errors?.length) errors.push(`ESPN: ${data.errors.join("; ")}`);
+
+    state.team = { name: "Clube Atlético Mineiro", shortName: "Atlético-MG" };
+    const crest = data.crest || "https://media.api-sports.io/football/teams/1062.png";
+    $("#clubCrest").innerHTML = `<img src="${esc(crest)}" alt="Escudo do Atlético-MG">`;
   } catch(e) {
-    errors.push(`API-Football: ${e.message}`);
+    errors.push(`ESPN: ${e.message}`);
   }
 
   try {
