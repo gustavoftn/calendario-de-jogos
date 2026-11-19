@@ -1,5 +1,7 @@
 {
-  "name": "calendario-galo",
-  "version": "1.0.0",
-  "type": "module"
+  "functions": {
+    "api/football.js": {
+      "maxDuration": 10
+    }
+  }
 }
