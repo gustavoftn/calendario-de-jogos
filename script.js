@@ -466,3 +466,66 @@ $("#refreshBtn").addEventListener("click",loadMatches);
 document.querySelectorAll(".nav-item").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view)));
 
 loadMatches();
+// ---------- Animação de entrada (sem som) ----------
+// Cole este bloco no FINAL do script.js (depois de loadMatches();).
+// Não precisa mexer no HTML nem no CSS: o estilo é injetado por aqui.
+(function intro(){
+  // Mostra uma vez por sessão
+  if(sessionStorage.getItem("intro_visto")) return;
+  sessionStorage.setItem("intro_visto", "1");
+
+  const css = `
+    #intro{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;
+      background:radial-gradient(circle at 50% 40%,#1c1c1c 0%,#000 70%);color:#fff;
+      transition:opacity .7s ease,transform .7s ease;cursor:pointer}
+    #intro.sair{opacity:0;transform:scale(1.08);pointer-events:none}
+    .intro-inner{text-align:center;padding:24px}
+    .intro-letters{display:flex;justify-content:center;align-items:baseline;
+      font-size:clamp(64px,16vw,150px);font-weight:900;letter-spacing:.06em;line-height:1}
+    .intro-letters span{opacity:0;transform:translateY(-40px) scale(1.3);
+      animation:introLetra .6s cubic-bezier(.2,.9,.3,1.2) forwards}
+    .intro-letters i{font-style:normal;color:#e11d2e;opacity:0;animation:introLetra .6s .95s forwards}
+    .intro-line{height:4px;width:0;margin:18px auto 0;background:#e11d2e;border-radius:2px;
+      animation:introLinha .8s 1s ease forwards}
+    .intro-sub{margin:18px 0 0;color:#aaa;letter-spacing:.2em;text-transform:uppercase;
+      font-size:12px;opacity:0;animation:introFade .6s 1.5s forwards}
+    @keyframes introLetra{to{opacity:1;transform:none}}
+    @keyframes introLinha{to{width:min(320px,60vw)}}
+    @keyframes introFade{to{opacity:1}}
+    @media (prefers-reduced-motion:reduce){
+      #intro *{animation-duration:.01s!important;animation-delay:0s!important}
+      #intro{transition:opacity .2s}
+      #intro.sair{transform:none}
+    }`;
+  const style = document.createElement("style");
+  style.textContent = css;
+  document.head.appendChild(style);
+
+  const el = document.createElement("div");
+  el.id = "intro";
+  el.setAttribute("aria-hidden", "true");
+  el.innerHTML = `
+    <div class="intro-inner">
+      <div class="intro-letters">${"GALODAY".split("").map((l, i) =>
+        `<span style="animation-delay:${0.2 + i * 0.18}s">${l}</span>`).join("")}<i>.</i></div>
+      <div class="intro-line"></div>
+      <p class="intro-sub">Calendário de jogos · Atlético-MG</p>
+    </div>`;
+  document.body.appendChild(el);
+  document.body.style.overflow = "hidden";
+
+  let fechado = false;
+  function fechar(){
+    if(fechado) return;
+    fechado = true;
+    el.classList.add("sair");
+    setTimeout(() => {
+      el.remove();
+      document.body.style.overflow = "";
+    }, 800);
+  }
+
+  setTimeout(fechar, 2800);           // fecha sozinha
+  el.addEventListener("click", fechar); // ou ao clicar
+  document.addEventListener("keydown", e => { if(e.key === "Escape") fechar(); });
+})();
