@@ -131,13 +131,15 @@ async function login(e){
   const data = await res.json().catch(() => ({}));
   if(!res.ok || !data.access_token) return renderAddView("E-mail ou senha incorretos.");
   authToken = data.access_token;
-  sessionStorage.setItem("sb_token", authToken);
+    sessionStorage.setItem("sb_token", authToken);
+  updateNotice();
   renderAddView();
 }
 
 function logout(){
   authToken = null;
-  sessionStorage.removeItem("sb_token");
+    sessionStorage.removeItem("sb_token");
+  updateNotice();
   renderAddView();
 }
 
@@ -220,6 +222,11 @@ async function loadMatches(){
   hideNotice(); setConnection("Carregando partidas…");
   $("#refreshBtn").disabled = true;
   const errors = [];
+  let noticeText = "";
+function updateNotice(){
+  if(authToken && noticeText) showNotice(noticeText);
+  else hideNotice();
+}
   let apiMatches = [];
   let manualMatches = [];
 
@@ -250,14 +257,14 @@ async function loadMatches(){
 
   setConnection(errors.length === 0 ? "Dados atualizados" : state.matches.length ? "Dados parcialmente carregados" : "Falha na conexão");
   const apiCount = apiMatches.length, manualCount = manualMatches.length;
-
   if(errors.length){
-    showNotice(`${state.matches.length} partidas carregadas (${apiCount} da ESPN e ${manualCount} do Supabase). ${errors.join(" | ")}`);
+    noticeText = `${state.matches.length} partidas carregadas (${apiCount} da ESPN e ${manualCount} do Supabase). ${errors.join(" | ")}`;
   }else if(!state.matches.length){
-    showNotice("Nenhuma partida encontrada. Cadastre jogos manualmente na aba Adicionar jogo ou verifique a cobertura da ESPN.");
+    noticeText = "Nenhuma partida encontrada. Cadastre jogos manualmente na aba Adicionar jogo ou verifique a cobertura da ESPN.";
   }else{
-    showNotice(`Calendário carregado: ${state.matches.length} partidas — ${apiCount} da ESPN e ${manualCount} cadastradas no Supabase.`);
+    noticeText = `Calendário carregado: ${state.matches.length} partidas — ${apiCount} da ESPN e ${manualCount} cadastradas no Supabase.`;
   }
+  updateNotice(); 
   $("#refreshBtn").disabled = false;
 }
 
