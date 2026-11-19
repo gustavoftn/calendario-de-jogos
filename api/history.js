@@ -54,32 +54,76 @@ async function request(path, token) {
   return data;
 }
 
+function readGoals(item) {
+  const score = item.score || {};
+  const full = score.fullTime || score.regularTime || {};
+  const home = full.home ?? full.homeTeam ?? score.homeTeam ?? null;
+  const away = full.away ?? full.awayTeam ?? score.awayTeam ?? null;
+  const h = home == null ? null : Number(home);
+  const a = away == null ? null : Number(away);
+  return {
+    home: Number.isFinite(h) ? h : null,
+    away: Number.isFinite(a) ? a : null
+  };
+}
+
 function parseHistory(payload, fixture, homeName, awayName) {
-  const h2h = payload.head2head || payload.aggregates || payload;
+  const aggregate = payload.head2head || payload.aggregates || {};
   const fixtureHomeKey = teamKey(fixture.homeTeam?.name);
   const targetHomeIsFixtureHome = fixtureHomeKey === teamKey(homeName);
-  const fixtureHome = h2h.homeTeam || {};
-  const fixtureAway = h2h.awayTeam || {};
-  const targetHome = targetHomeIsFixtureHome ? fixtureHome : fixtureAway;
-  const targetAway = targetHomeIsFixtureHome ? fixtureAway : fixtureHome;
-  const matches = (payload.matches || h2h.matches || []).map(item => ({
-    utcDate: item.utcDate,
-    homeTeam: item.homeTeam?.shortName || item.homeTeam?.name || "—",
-    awayTeam: item.awayTeam?.shortName || item.awayTeam?.name || "—",
-    homeGoals: item.score?.fullTime?.home ?? item.score?.regularTime?.home ?? null,
-    awayGoals: item.score?.fullTime?.away ?? item.score?.regularTime?.away ?? null
-  })).filter(item => item.utcDate);
-  const totalMatches = h2h.numberOfMatches ?? payload.resultSet?.count ?? matches.length;
-  const draws = targetHome.draws ?? targetAway.draws ?? 0;
+
+  // A lista de partidas é a fonte mais confiável para contar vitórias/empates.
+  // Não dependemos dos agregados da API, que podem vir orientados pelo mandante
+  // da partida-base e não pelo mandante do jogo que o usuário abriu.
+  const rawMatches = payload.matches || aggregate.matches || aggregate.fixtures || [];
+  const wanted = [teamKey(homeName), teamKey(awayName)].sort();
+  const matches = rawMatches.map(item => {
+    const goals = readGoals(item);
+    return {
+      utcDate: item.utcDate || item.date,
+      homeTeam: item.homeTeam?.name || item.homeTeam?.shortName || "—",
+      awayTeam: item.awayTeam?.name || item.awayTeam?.shortName || "—",
+      homeGoals: goals.home,
+      awayGoals: goals.away
+    };
+  }).filter(item => {
+    if (!item.utcDate) return false;
+    const pair = [teamKey(item.homeTeam), teamKey(item.awayTeam)].sort();
+    return pair[0] === wanted[0] && pair[1] === wanted[1];
+  });
+
+  let homeWins = 0, draws = 0, awayWins = 0, counted = 0;
+  for (const item of matches) {
+    if (item.homeGoals == null || item.awayGoals == null) continue;
+    counted++;
+    const homeWon = item.homeGoals > item.awayGoals;
+    const awayWon = item.awayGoals > item.homeGoals;
+    if (item.homeGoals === item.awayGoals) draws++;
+    else if (homeWon) {
+      if (teamKey(item.homeTeam) === teamKey(homeName)) homeWins++;
+      else awayWins++;
+    } else if (awayWon) {
+      if (teamKey(item.awayTeam) === teamKey(homeName)) homeWins++;
+      else awayWins++;
+    }
+  }
+
+  // Se a API não entregar placares detalhados, usa os agregados orientados
+  // conforme o mandante da partida-base, sem inventar zeros.
+  const aggHome = aggregate.homeTeam || {};
+  const aggAway = aggregate.awayTeam || {};
+  const fallbackHome = targetHomeIsFixtureHome ? aggHome : aggAway;
+  const fallbackAway = targetHomeIsFixtureHome ? aggAway : aggHome;
+  const hasComputedStats = counted > 0;
   return {
     source: "football-data.org",
-    totalMatches,
-    totalGoals: h2h.totalGoals ?? null,
-    stats: {
-      homeWins: targetHome.wins ?? null,
-      draws,
-      awayWins: targetAway.wins ?? null
+    totalMatches: aggregate.numberOfMatches ?? payload.resultSet?.count ?? matches.length,
+    stats: hasComputedStats ? { homeWins, draws, awayWins } : {
+      homeWins: fallbackHome.wins ?? null,
+      draws: fallbackHome.draws ?? fallbackAway.draws ?? null,
+      awayWins: fallbackAway.wins ?? null
     },
+    statsScope: hasComputedStats ? `Calculado a partir de ${counted} partidas com placar` : "Agregado informado pela API",
     matches
   };
 }
