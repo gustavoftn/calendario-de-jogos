@@ -289,7 +289,7 @@ function renderCalendar(){
   const ms=visibleMatches(), byDate=new Map();
   ms.forEach(match=>{const k=matchDate(match);if(!byDate.has(k))byDate.set(k,[]);byDate.get(k).push(match)});
   const today=localDateKey(new Date().toISOString());
-  const label=(g)=>{const r=resultOf(g);return `<span class="day-match-label ${r?`result-${r}`:""}">${esc(g.competition?.label||g.competition?.code||"JOGO")} · ${esc(g.homeTeam?.shortName||g.homeTeam?.name||"—")} x ${esc(g.awayTeam?.shortName||g.awayTeam?.name||"—")}</span>`};
+  const label=(g)=>{const r=resultOf(g);return `<span class="day-match-label ${colorClass(g)}">${esc(g.competition?.label||g.competition?.code||"JOGO")} · ${esc(g.homeTeam?.shortName||g.homeTeam?.name||"—")} x ${esc(g.awayTeam?.shortName||g.awayTeam?.name||"—")}</span>`};
   let html="";
   for(let i=0;i<42;i++){
     const d=new Date(start);d.setDate(start.getDate()+i);
@@ -315,22 +315,31 @@ function matchCard(m){
   const score=m.score?.fullTime;
   const hasScore=score?.home!=null&&score?.away!=null;
   const r=resultOf(m);
-  return `<article class="day-match ${r?`result-${r}`:""}"><div class="match-comp">${esc(m.competition?.name||"Competição")}</div><div class="match-teams"><span>${esc(h)}</span><span class="versus">${hasScore?`${score.home} × ${score.away}`:"×"}</span><span>${esc(a)}</span></div><div class="match-meta"><span>${localTime(m.utcDate)} · ${esc(statusNames[m.status]||m.status||"—")} ${r?`<span class="result-badge ${r}">${resultLabel[r]}</span>`:""}</span><span>${esc(m.venue||"Estádio a confirmar")}</span></div></article>`;
+  return `<article class="day-match ${colorClass(m)}"><div class="match-comp">${esc(m.competition?.name||"Competição")}</div><div class="match-teams"><span>${esc(h)}</span><span class="versus">${hasScore?`${score.home} × ${score.away}`:"×"}</span><span>${esc(a)}</span></div><div class="match-meta"><span>${localTime(m.utcDate)} · ${esc(statusNames[m.status]||m.status||"—")} ${r?`<span class="result-badge ${r}">${resultLabel[r]}</span>`:""}</span><span>${esc(m.venue||"Estádio a confirmar")}</span></div></article>`;
+}
+function colorClass(m){
+  const r = resultOf(m);
+  if(r) return `result-${r}`;
+  if(["SCHEDULED","TIMED"].includes(m.status)) return "status-scheduled";
+  return "";
 }
 
 function renderList(){
-  const matches=visibleMatches();
+  const matches=[...visibleMatches()].reverse();
   if(!matches.length){$("#matchesList").innerHTML='<p class="empty-state">Nenhuma partida encontrada com os filtros selecionados.</p>';return}
   const grouped=new Map();
   matches.forEach(m=>{const key=matchDate(m);if(!grouped.has(key))grouped.set(key,[]);grouped.get(key).push(m)});
+  const hoje=localDateKey(new Date().toISOString());
+  const chaves=[...grouped.keys()];
+  const alvo=chaves.find(k=>k>=hoje)||chaves[chaves.length-1];
   let html="";
   [...grouped.entries()].forEach(([key,items])=>{
     const d=new Date(`${key}T12:00:00`);
-    html+=`<div class="date-group">${d.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long",year:"numeric"})}</div>`;
+    html+=`<div class="date-group"${key===alvo?' id="lista-alvo"':""}>${d.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long",year:"numeric"})}</div>`;
     items.forEach(m=>{
       const h=m.homeTeam?.shortName||m.homeTeam?.name||"—",a=m.awayTeam?.shortName||m.awayTeam?.name||"—",s=m.score?.fullTime;
       const has=s?.home!=null&&s?.away!=null, r=resultOf(m);
-      html+=`<article class="list-match ${r?`result-${r}`:""}"><div class="list-date">${localTime(m.utcDate)}<small class="status-tag">${esc(statusNames[m.status]||m.status||"—")}</small></div><div class="list-teams">${esc(h)} <span style="color:#888">×</span> ${esc(a)}<small>${esc(m.venue||"Estádio a confirmar")}</small></div><div class="list-comp">${esc(m.competition?.name||"Competição")}</div><div class="list-score">${has?`${s.home} × ${s.away}`:"—"}${r?`<span class="result-badge ${r}">${resultLabel[r]}</span>`:""}</div></article>`;
+      html+=`<article class="list-match ${colorClass(m)}"><div class="list-date">${localTime(m.utcDate)}<small class="status-tag">${esc(statusNames[m.status]||m.status||"—")}</small></div><div class="list-teams">${esc(h)} <span style="color:#888">×</span> ${esc(a)}<small>${esc(m.venue||"Estádio a confirmar")}</small></div><div class="list-comp">${esc(m.competition?.name||"Competição")}</div><div class="list-score">${has?`${s.home} × ${s.away}`:"—"}${r?`<span class="result-badge ${r}">${resultLabel[r]}</span>`:""}</div></article>`;
     });
   });
   $("#matchesList").innerHTML=html;
@@ -343,6 +352,7 @@ function setView(view){
   $("#addView").classList.toggle("hidden",view!=="add");
   document.querySelectorAll("[data-view]").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
   if(view==="add") renderAddView();
+  if(view==="list") setTimeout(()=>document.getElementById("lista-alvo")?.scrollIntoView({block:"start"}),0);
 }
 
 // ---------- Inicialização ----------
