@@ -57,7 +57,7 @@ function installMatchModal(){
   if(document.getElementById("matchDetailsModal")) return;
   const style = document.createElement("style");
   style.textContent = `
-    .match-modal-backdrop{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.76);display:flex;align-items:center;justify-content:center;padding:18px;backdrop-filter:blur(7px)}
+    .match-modal-backdrop.hidden{display:none!important}.match-modal-backdrop{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.76);display:flex;align-items:center;justify-content:center;padding:18px;backdrop-filter:blur(7px)}
     .match-modal{width:min(680px,100%);max-height:min(88vh,900px);overflow:auto;background:#151515;color:#f5f5f5;border:1px solid #303030;border-radius:20px;box-shadow:0 24px 80px #0009}
     .match-modal-head{display:flex;align-items:center;justify-content:space-between;padding:20px 22px;border-bottom:1px solid #2b2b2b;position:sticky;top:0;background:#151515;z-index:2}
     .match-modal-head h2{font:800 18px Manrope, sans-serif;margin:0}.match-modal-close{border:0;background:#292929;color:#fff;border-radius:50%;width:36px;height:36px;font-size:22px;cursor:pointer}
@@ -74,7 +74,7 @@ function installMatchModal(){
   modal.setAttribute("aria-hidden","true");
   modal.innerHTML = `<section class="match-modal" role="dialog" aria-modal="true" aria-labelledby="matchModalTitle"><header class="match-modal-head"><h2 id="matchModalTitle">Detalhes da partida</h2><button class="match-modal-close" type="button" aria-label="Fechar">×</button></header><div class="match-modal-body" id="matchModalBody"></div></section>`;
   document.body.appendChild(modal);
-  modal.addEventListener("click", e=>{if(e.target===modal || e.target.closest(".match-modal-close")) closeMatchDetails();});
+  modal.addEventListener("click", e=>{if(e.target===modal || e.target.closest(".match-modal-close")){e.preventDefault();e.stopPropagation();closeMatchDetails();}});
   document.addEventListener("keydown", e=>{if(e.key==="Escape") closeMatchDetails();});
 }
 
