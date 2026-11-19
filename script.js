@@ -109,7 +109,7 @@ async function loadMatches(){
 
     state.team = { name: "Clube Atlético Mineiro", shortName: "Atlético-MG" };
     const crest = data.crest || "https://media.api-sports.io/football/teams/1062.png";
-    $("#clubCrest").innerHTML = `<img src="${esc(crest)}" alt="Escudo do Atlético-MG">`;
+    $("#clubCrest").innerHTML = `<img src="${esc(crest)}" alt="Escudo do Atlético-MG" style="width:34px;height:34px;object-fit:contain;display:block">`;
   } catch(e) {
     errors.push(`ESPN: ${e.message}`);
   }
