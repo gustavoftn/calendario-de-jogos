@@ -63,11 +63,11 @@ function injectStyles(){
     .day-match.result-win,.list-match.result-win{border-left:4px solid #22c55e}
     .day-match.result-draw,.list-match.result-draw{border-left:4px solid #eab308}
     .day-match.result-loss,.list-match.result-loss{border-left:4px solid #ef4444}
-    .day-match.status-scheduled,.list-match.status-scheduled{border-left:4px solid #3b82f6}
+    .day-match.status-scheduled,.list-match.status-scheduled{border-left:4px solid #76797c}
     .day-match-label.result-win{color:#4ade80!important}
     .day-match-label.result-draw{color:#facc15!important}
     .day-match-label.result-loss{color:#f87171!important}
-    .day-match-label.status-scheduled{color:#60a5fa!important}
+    .day-match-label.status-scheduled{color:#76797c!important}
     .result-badge{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700}
     .result-badge.win{background:rgba(34,197,94,.15);color:#4ade80}
     .result-badge.draw{background:rgba(234,179,8,.15);color:#facc15}
