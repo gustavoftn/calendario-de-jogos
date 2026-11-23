@@ -657,7 +657,7 @@ loadMatches();
   el.setAttribute("aria-hidden", "true");
   el.innerHTML = `
     <div class="intro-inner">
-      <div class="intro-letters">${"GALO".split("").map((l, i) =>
+      <div class="intro-letters">${"GALODAY".split("").map((l, i) =>
         `<span style="animation-delay:${0.2 + i * 0.18}s">${l}</span>`).join("")}<i>.</i></div>
       <div class="intro-line"></div>
       <p class="intro-sub">Calendário de jogos · Atlético-MG</p>
