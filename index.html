@@ -25,6 +25,7 @@
       <nav class="side-nav">
         <button class="nav-item active" data-view="calendar"><span>▦</span> Calendário</button>
         <button  class="nav-item" data-view="list"><span>☷</span> Lista de jogos</button>
+        <button class="nav-item" data-view="standings"><span>♜</span> Classificação</button>
       </nav>
       <div class="sidebar-bottom">
         <span class="live-dot"></span>
@@ -118,6 +119,29 @@
           <span id="listCount" class="count-pill">0 partidas</span>
         </div>
         <div id="matchesList" class="matches-list"></div>
+      </section>
+
+      <section id="standingsView" class="content-view hidden">
+        <div class="standings-heading">
+          <div>
+            <p class="eyebrow">BRASILEIRÃO SÉRIE A</p>
+            <h2>Classificação dos clubes</h2>
+          </div>
+        </div>
+        <p id="simulationNotice" class="simulation-notice hidden"></p>
+        <div id="simulationMatches" class="simulation-matches hidden"></div>
+        <div class="standings-panel">
+          <div class="standings-table-wrap">
+            <table class="standings-table">
+              <thead>
+                <tr>
+                  <th>#</th><th>Clube</th><th>PTS</th><th>J</th><th>V</th><th>E</th><th>D</th><th>SG</th>
+                </tr>
+              </thead>
+              <tbody id="standingsBody"></tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       <footer class="footer">

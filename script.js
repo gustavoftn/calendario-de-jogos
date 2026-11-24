@@ -6,6 +6,7 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_fK6QyLga4HbsRg104vg_Iw_6UCsXXbB
 const state = {
   matches: [],
   team: null,
+  standings: [],
   month: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   selectedDate: new Date().toISOString().slice(0,10),
   view: "calendar",
@@ -111,6 +112,26 @@ function injectStyles(){
     .h2h-row.result-win{border-left-color:#22c55e}
     .h2h-row.result-draw{border-left-color:#eab308}
     .h2h-row.result-loss{border-left-color:#ef4444}
+    .standings-heading{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:15px}
+    .standings-heading h2{font:800 21px Manrope;margin:0}
+    .standings-actions{display:flex;gap:8px}
+    .simulate-btn,.reset-sim-btn{border:0;border-radius:9px;padding:11px 14px;font-weight:800;font-size:12px}
+    .simulate-btn{background:#d71920;color:#fff}
+    .reset-sim-btn{background:#252525;border:1px solid #444;color:#ddd}
+    .simulation-notice{padding:10px 12px;border-radius:9px;border:1px solid #5a4820;background:#2d2617;color:#f4d795;font-size:12px}
+    .standings-panel{background:#181818;border:1px solid #2c2c2c;border-radius:12px;padding:10px}
+    .standings-table-wrap{overflow-x:auto}
+    .standings-table{width:100%;border-collapse:collapse;min-width:620px}
+    .standings-table th{padding:10px 12px;color:#888;font-size:9px;text-transform:uppercase;text-align:right;border-bottom:1px solid #333}
+    .standings-table th:nth-child(1),.standings-table th:nth-child(2){text-align:left}
+    .standings-table td{padding:12px;color:#ddd;font-size:12px;text-align:right;border-bottom:1px solid #292929}
+    .standings-table td:nth-child(1),.standings-table td:nth-child(2){text-align:left}
+    .standings-club{display:flex;align-items:center;gap:9px;font-weight:700}
+    .standings-club img{width:26px;height:26px;object-fit:contain}
+    .standings-table tr.galo td{background:rgba(215,25,32,.09)}
+    .standings-rank{color:#aaa;font-weight:800}
+    .points-cell{color:#fff;font-weight:900}
+    @media(max-width:720px){.standings-heading{align-items:flex-start;flex-direction:column}.standings-actions{width:100%}.simulate-btn,.reset-sim-btn{flex:1}}
   `;
   const style = document.createElement("style");
   style.id = "app-extra-styles";
@@ -319,6 +340,8 @@ async function loadMatches(){
     if (data.errors?.length) errors.push(`ESPN: ${data.errors.join("; ")}`);
 
     state.team = { name: "Clube Atlético Mineiro", shortName: "Atlético-MG" };
+    state.standings = Array.isArray(data.standings) ? data.standings : [];
+
     const crest = data.crest || "https://media.api-sports.io/football/teams/1062.png";
     const cc = $("#clubCrest");
     if(cc) cc.innerHTML = `<img src="${esc(crest)}" alt="Escudo do Atlético-MG" style="width:34px;height:34px;object-fit:contain;display:block">`;
@@ -360,7 +383,14 @@ async function loadMatches(){
 }
 
 // ---------- Desenho na tela ----------
-function renderAll(){renderSummary();renderCompetitionFilter();renderCalendar();renderSelectedDay();renderList()}
+function renderAll(){
+  renderSummary();
+  renderCompetitionFilter();
+  renderCalendar();
+  renderSelectedDay();
+  renderList();
+  renderStandings();
+}
 
 function renderSummary(){
   const ms=visibleMatches();
@@ -436,6 +466,40 @@ function renderList(){
     });
   });
   box.innerHTML=html;
+}
+
+// ---------- Classificação ----------
+function renderStandings(){
+  const body = $("#standingsBody");
+  if(!body) return;
+
+  const list = state.standings || [];
+  if(!list.length){
+    body.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#888;padding:24px">Classificação ainda não disponível.</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = list.map(c => {
+    const galo = isGalo({ name: c.name });
+    const crest = c.crest
+      ? `<img src="${esc(c.crest)}" alt="" loading="lazy">`
+      : "";
+    return `<tr class="${galo ? "galo" : ""}">
+      <td class="standings-rank">${c.rank ?? "—"}</td>
+      <td>
+        <div class="standings-club">
+          ${crest}
+          <span>${esc(c.shortName || c.name)}</span>
+        </div>
+      </td>
+      <td class="points-cell">${c.points ?? 0}</td>
+      <td>${c.played ?? 0}</td>
+      <td>${c.wins ?? 0}</td>
+      <td>${c.draws ?? 0}</td>
+      <td>${c.losses ?? 0}</td>
+      <td>${c.goalDifference ?? 0}</td>
+    </tr>`;
+  }).join("");
 }
 
 // ---------- Detalhes do jogo (janela ao clicar) ----------
@@ -598,8 +662,10 @@ function setView(view){
   calendarParts().forEach(el=>toggle(el,view==="calendar"));
   toggle($("#listView"),view==="list");
   toggle($("#addView"),view==="add");
+  toggle($("#standingsView"),view==="standings");
   document.querySelectorAll("[data-view]").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
   if(view==="add") renderAddView();
+  if(view==="standings") renderStandings();
   window.scrollTo({top:0});
 }
 
