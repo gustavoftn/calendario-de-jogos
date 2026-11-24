@@ -108,3 +108,65 @@ footer{border-top:1px solid #282828;margin-top:30px;padding-top:14px;display:fle
 }
 .hidden{display:none!important}
 .refresh-btn{display:none!important}
+/* ===== Alternador de tema ===== */
+:root{color-scheme:dark}
+html[data-theme="light"]{color-scheme:light}
+.theme-btn{background:var(--panel-2);border:1px solid var(--line);color:var(--text);width:40px;height:40px;border-radius:10px;display:grid;place-items:center;flex-shrink:0}
+.theme-btn span{font-size:18px;line-height:1}
+.theme-btn:hover{border-color:var(--red)}
+.footer a:hover{color:var(--text)}
+
+/* ===== Modo claro ===== */
+html[data-theme="light"]{--bg:#f5f3f1;--panel:#ffffff;--panel-2:#f1eeec;--line:#e2dedb;--text:#1a1a1a;--muted:#6a6a6a}
+html[data-theme="light"] .sidebar{background:#fff}
+html[data-theme="light"] .club-card{background:#f5f1ef;border-color:#e2dedb}
+html[data-theme="light"] .nav-item{color:#555}
+html[data-theme="light"] .nav-item:hover,html[data-theme="light"] .nav-item.active{background:#fbe9ea;color:#1a1a1a}
+html[data-theme="light"] .eyebrow,html[data-theme="light"] .summary-label,html[data-theme="light"] .filters label span{color:#6a6a6a}
+html[data-theme="light"] .summary-card{background:#fff}
+html[data-theme="light"] .notice{background:#fdeceb;border-color:#f2c4c6;color:#8f1117}
+html[data-theme="light"] .view-switch{background:#ece8e5}
+html[data-theme="light"] .view-btn{color:#555}
+html[data-theme="light"] .view-btn.active{background:#fff;color:#111;box-shadow:0 1px 3px #0002}
+html[data-theme="light"] .filters select{background:#fff;border-color:#d6d1cd;color:#222}
+html[data-theme="light"] .month-actions button{background:#f1eeec;border-color:#d6d1cd;color:#222}
+html[data-theme="light"] .weekdays span,html[data-theme="light"] .calendar-legend{color:#777}
+html[data-theme="light"] .calendar-day{background:#faf8f7;border-color:#e6e2df;color:#333}
+html[data-theme="light"] .calendar-day.today{border-color:#888}
+html[data-theme="light"] .calendar-day.selected{background:#fdeaea;border-color:var(--red)}
+html[data-theme="light"] .day-match-label{color:#b3141b}
+html[data-theme="light"] .day-match{background:#faf8f7;border-color:#e2dedb}
+html[data-theme="light"] .match-comp,html[data-theme="light"] .list-comp{color:#666}
+html[data-theme="light"] .match-teams .versus,html[data-theme="light"] .match-meta,html[data-theme="light"] .list-teams small,html[data-theme="light"] .empty-state{color:#777}
+html[data-theme="light"] .count-pill{background:#fff;border-color:#d6d1cd;color:#444}
+html[data-theme="light"] .list-match{background:#fff;border-color:#e2dedb}
+html[data-theme="light"] .list-date{color:#333}
+html[data-theme="light"] .status-tag{background:#ece8e5;color:#555}
+html[data-theme="light"] footer{border-top-color:#e2dedb}
+/* resultados */
+html[data-theme="light"] .day-match-label.result-win{color:#15803d!important}
+html[data-theme="light"] .day-match-label.result-draw{color:#a16207!important}
+html[data-theme="light"] .day-match-label.result-loss{color:#b91c1c!important}
+html[data-theme="light"] .day-match-label.status-scheduled{color:#6b7075!important}
+html[data-theme="light"] .result-badge.win,html[data-theme="light"] .modal-sum .win{color:#15803d}
+html[data-theme="light"] .result-badge.draw,html[data-theme="light"] .modal-sum .draw{color:#a16207}
+html[data-theme="light"] .result-badge.loss,html[data-theme="light"] .modal-sum .loss{color:#b91c1c}
+/* formulário */
+html[data-theme="light"] .add-card{background:#fff;border-color:#e2dedb}
+html[data-theme="light"] .add-card label{color:#555}
+html[data-theme="light"] .add-card input,html[data-theme="light"] .add-card select{background:#fff;border-color:#d6d1cd;color:#111}
+html[data-theme="light"] .add-btn.ghost{border-color:#cfc9c5;color:#333}
+html[data-theme="light"] .add-msg{color:#a16207}
+/* janela de detalhes */
+html[data-theme="light"] .modal-card{background:#fff;border-color:#e2dedb;color:#1a1a1a}
+html[data-theme="light"] .modal-close,html[data-theme="light"] .modal-comp,html[data-theme="light"] .modal-info dt{color:#666}
+html[data-theme="light"] .modal-muted,html[data-theme="light"] .h2h-row .h2h-comp{color:#777}
+html[data-theme="light"] .h2h-row{background:#f5f2f0}
+/* classificação */
+html[data-theme="light"] .reset-sim-btn{background:#f1eeec;border-color:#d6d1cd;color:#333}
+html[data-theme="light"] .simulation-notice{background:#fff7e0;border-color:#ecd9a0;color:#7a5a00}
+html[data-theme="light"] .standings-panel{background:#fff;border-color:#e2dedb}
+html[data-theme="light"] .standings-table th{color:#777;border-bottom-color:#e2dedb}
+html[data-theme="light"] .standings-table td{color:#333;border-bottom-color:#eeeae7}
+html[data-theme="light"] .standings-rank{color:#777}
+html[data-theme="light"] .points-cell{color:#111}
