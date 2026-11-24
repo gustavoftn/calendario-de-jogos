@@ -135,11 +135,11 @@ html[data-theme="light"] .calendar-day{background:#faf8f7;border-color:#e6e2df;c
 html[data-theme="light"] .calendar-day.today{border-color:#888}
 html[data-theme="light"] .calendar-day.selected{background:#fdeaea;border-color:var(--red)}
 html[data-theme="light"] .day-match-label{color:#b3141b}
-html[data-theme="light"] .day-match{background:#faf8f7;border-color:#e2dedb}
+html[data-theme="light"] .day-match{background:#faf8f7;border-top-color:#e2dedb;border-right-color:#e2dedb;border-bottom-color:#e2dedb}
 html[data-theme="light"] .match-comp,html[data-theme="light"] .list-comp{color:#666}
 html[data-theme="light"] .match-teams .versus,html[data-theme="light"] .match-meta,html[data-theme="light"] .list-teams small,html[data-theme="light"] .empty-state{color:#777}
 html[data-theme="light"] .count-pill{background:#fff;border-color:#d6d1cd;color:#444}
-html[data-theme="light"] .list-match{background:#fff;border-color:#e2dedb}
+html[data-theme="light"] .list-match{background:#fff;border-top-color:#e2dedb;border-right-color:#e2dedb;border-bottom-color:#e2dedb}
 html[data-theme="light"] .list-date{color:#333}
 html[data-theme="light"] .status-tag{background:#ece8e5;color:#555}
 html[data-theme="light"] footer{border-top-color:#e2dedb}
@@ -170,3 +170,9 @@ html[data-theme="light"] .standings-table th{color:#777;border-bottom-color:#e2d
 html[data-theme="light"] .standings-table td{color:#333;border-bottom-color:#eeeae7}
 html[data-theme="light"] .standings-rank{color:#777}
 html[data-theme="light"] .points-cell{color:#111}
+
+/* Borda esquerda por resultado (modo claro) — especificidade alta para nunca ser sobrescrita */
+html[data-theme="light"] .day-match.result-win,html[data-theme="light"] .list-match.result-win{border-left:4px solid #22c55e!important}
+html[data-theme="light"] .day-match.result-draw,html[data-theme="light"] .list-match.result-draw{border-left:4px solid #eab308!important}
+html[data-theme="light"] .day-match.result-loss,html[data-theme="light"] .list-match.result-loss{border-left:4px solid #ef4444!important}
+html[data-theme="light"] .day-match.status-scheduled,html[data-theme="light"] .list-match.status-scheduled{border-left:4px solid #9a9da1!important}
