@@ -27,6 +27,7 @@
         <button class="nav-item active" data-view="calendar"><span>▦</span> Calendário</button>
         <button  class="nav-item" data-view="list"><span>☷</span> Lista de jogos</button>
         <button class="nav-item" data-view="standings"><span>♜</span> Classificação</button>
+        <button class="nav-item" data-view="performance"><span>%</span> Aproveitamento</button>
       </nav>
       <div class="sidebar-bottom">
         <span class="live-dot"></span>
@@ -144,6 +145,17 @@
             </table>
           </div>
         </div>
+      </section>
+
+      <section id="performanceView" class="content-view hidden">
+        <div class="standings-heading">
+          <div>
+            <p class="eyebrow">DESEMPENHO DO GALO</p>
+            <h2>Aproveitamento por competição</h2>
+            <p class="subtitle">Pontos conquistados ÷ pontos possíveis (3 por jogo), só com partidas finalizadas.</p>
+          </div>
+        </div>
+        <div id="performanceBody" class="perf-grid"></div>
       </section>
 
       <footer class="footer">

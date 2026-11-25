@@ -116,6 +116,22 @@ html[data-theme="light"]{color-scheme:light}
 .theme-btn:hover{border-color:var(--red)}
 .footer a:hover{color:var(--text)}
 
+/* ===== Aproveitamento por competição ===== */
+.perf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:18px}
+.perf-card{background:var(--panel);border:1px solid;border-radius:12px;padding:18px;display:grid;gap:12px}
+
+.perf-card header{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.perf-card h3{margin:0;font:700 15px Manrope}
+.perf-pct{font:800 24px Manrope;color:var(--text)}
+.perf-bar{height:8px;border-radius:99px;background:rgba(128,128,128,.22);overflow:hidden}
+.perf-bar i{display:block;height:100%;border-radius:99px}
+.perf-bar .tier-high{background:#22c55e}.perf-bar .tier-mid{background:#eab308}.perf-bar .tier-low{background:#18b948}
+.perf-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 6px;margin:0}
+.perf-stats div{text-align:center}
+.perf-stats dt{font-size:9px;letter-spacing:1px;color:var(--muted);font-weight:800}
+.perf-stats dd{margin:3px 0 0;font:700 14px Manrope;color:var(--text)}
+.perf-card small{color:var(--muted);font-size:10px}
+
 /* ===== Modo claro ===== */
 html[data-theme="light"]{--bg:#f5f3f1;--panel:#ffffff;--panel-2:#f1eeec;--line:#e2dedb;--text:#1a1a1a;--muted:#6a6a6a}
 html[data-theme="light"] .sidebar{background:#fff}

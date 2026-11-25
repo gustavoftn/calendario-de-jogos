@@ -390,6 +390,7 @@ function renderAll(){
   renderSelectedDay();
   renderList();
   renderStandings();
+  renderPerformance();
 }
 
 function renderSummary(){
@@ -469,6 +470,42 @@ function renderList(){
 }
 
 // ---------- Classificação ----------
+// ---------- Aproveitamento por competição ----------
+function renderPerformance(){
+  const box=$("#performanceBody"); if(!box) return;
+  const groups=new Map();
+  const bump=(key,name,r,gf,gc)=>{
+    if(!groups.has(key)) groups.set(key,{name,j:0,v:0,e:0,d:0,gp:0,gc:0});
+    const g=groups.get(key);
+    g.j++; g.gp+=gf; g.gc+=gc;
+    if(r==="win") g.v++; else if(r==="draw") g.e++; else g.d++;
+  };
+  state.matches.forEach(m=>{
+    const r=resultOf(m); if(!r) return;
+    const s=m.score.fullTime, casa=isGalo(m.homeTeam);
+    const gf=casa?s.home:s.away, gc=casa?s.away:s.home;
+    bump("__geral","Geral",r,gf,gc);
+    bump(m.competition?.code||m.competition?.name||"outros",m.competition?.name||"Outros",r,gf,gc);
+  });
+  if(!groups.size){ box.innerHTML='<p class="empty-state">Ainda não há jogos finalizados para calcular o aproveitamento.</p>'; return; }
+  const geral=groups.get("__geral"); groups.delete("__geral");
+  const list=[geral,...[...groups.values()].sort((a,b)=>b.j-a.j||a.name.localeCompare(b.name))];
+  box.innerHTML=list.map((g,i)=>{
+    const pts=g.v*3+g.e, max=g.j*3, pct=max?pts/max*100:0;
+    const tier=pct>=60?"high":pct>=40?"mid":"low";
+    const sg=g.gp-g.gc;
+    return `<article class="perf-card${i===0?" perf-total":""}">
+      <header><h3>${esc(g.name)}</h3><strong class="perf-pct">${pct.toFixed(1).replace(".",",")}%</strong></header>
+      <div class="perf-bar" role="img" aria-label="Aproveitamento de ${pct.toFixed(1)}%"><i class="tier-${tier}" style="width:${pct}%"></i></div>
+      <dl class="perf-stats">
+        <div><dt>J</dt><dd>${g.j}</dd></div><div><dt>V</dt><dd>${g.v}</dd></div><div><dt>E</dt><dd>${g.e}</dd></div><div><dt>D</dt><dd>${g.d}</dd></div>
+        <div><dt>GM</dt><dd>${g.gp}</dd></div><div><dt>GC</dt><dd>${g.gc}</dd></div><div><dt>SG</dt><dd>${sg>0?"+":""}${sg}</dd></div><div><dt>PTS</dt><dd>${pts}</dd></div>
+      </dl>
+      <small>${pts} de ${max} pontos possíveis</small>
+    </article>`;
+  }).join("");
+}
+
 function renderStandings(){
   const body = $("#standingsBody");
   if(!body) return;
@@ -663,9 +700,11 @@ function setView(view){
   toggle($("#listView"),view==="list");
   toggle($("#addView"),view==="add");
   toggle($("#standingsView"),view==="standings");
+  toggle($("#performanceView"),view==="performance");
   document.querySelectorAll("[data-view]").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
   if(view==="add") renderAddView();
   if(view==="standings") renderStandings();
+  if(view==="performance") renderPerformance();
   window.scrollTo({top:0});
 }
 
