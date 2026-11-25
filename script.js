@@ -132,18 +132,7 @@ function injectStyles(){
     .standings-rank{color:#aaa;font-weight:800}
     .points-cell{color:#fff;font-weight:900}
     @media(max-width:720px){.standings-heading{align-items:flex-start;flex-direction:column}.standings-actions{width:100%}.simulate-btn,.reset-sim-btn{flex:1}}
-    /* Sidebar responsivo */
-    /* Abas do menu no celular: só a faixa rola, a página não */
-html,body{max-width:100%;overflow-x:hidden}
-.nav-scroll{
-  display:flex!important;flex-wrap:nowrap!important;gap:8px;
-  overflow-x:auto;overflow-y:hidden;max-width:100%;
-  -webkit-overflow-scrolling:touch;scrollbar-width:none;
-  scroll-snap-type:x proximity;padding-bottom:4px}
-.nav-scroll::-webkit-scrollbar{display:none}
-.nav-scroll .nav-item{flex:0 0 auto;white-space:nowrap;scroll-snap-align:start}
-.app-sidebar-fix{min-width:0;max-width:100%}
-    `;
+  `;
   const style = document.createElement("style");
   style.id = "app-extra-styles";
   style.textContent = css;
@@ -195,73 +184,6 @@ function buildAddUI(){
   const lv = $("#listView");
   if(lv) lv.insertAdjacentElement("afterend", sec);
   else document.body.appendChild(sec);
-  // ---------- Sidebar responsivo (menu deslizante no celular) ----------
-
-  const firstNav = document.querySelector(".nav-item");
-  const sidebar = document.querySelector("aside, .sidebar, #sidebar")
-    || firstNav?.closest("aside, nav, header")
-    || firstNav?.parentElement?.parentElement;
-  if(!sidebar || sidebar === document.body) return;
-
-  sidebar.classList.add("app-sidebar");
-  sidebar.parentElement?.classList.add("app-shell");
-
-  const btn = document.createElement("button");
-  btn.className = "menu-btn";
-  btn.type = "button";
-  btn.setAttribute("aria-label", "Abrir menu");
-  btn.textContent = "☰";
-
-  const backdrop = document.createElement("div");
-  backdrop.className = "menu-backdrop";
-
-  document.body.append(btn, backdrop);
-
-  const setOpen = (open) => {
-    document.body.classList.toggle("menu-open", open);
-    btn.textContent = open ? "×" : "☰";
-    btn.setAttribute("aria-label", open ? "Fechar menu" : "Abrir menu");
-  };
-
-  btn.addEventListener("click", () => setOpen(!document.body.classList.contains("menu-open")));
-  backdrop.addEventListener("click", () => setOpen(false));
-  sidebar.addEventListener("click", e => { if(e.target.closest(".nav-item")) setOpen(false); });
-  document.addEventListener("keydown", e => { if(e.key === "Escape") setOpen(false); });
-  window.matchMedia("(min-width:901px)").addEventListener("change", e => { if(e.matches) setOpen(false); });
-// ---------- Sidebar responsivo (menu deslizante no celular) ----------
-function buildResponsiveSidebar(){
-  const firstNav = document.querySelector(".nav-item");
-  const sidebar = document.querySelector("aside, .sidebar, #sidebar")
-    || firstNav?.closest("aside, nav, header")
-    || firstNav?.parentElement?.parentElement;
-  if(!sidebar || sidebar === document.body) return;
-
-  sidebar.classList.add("app-sidebar");
-  sidebar.parentElement?.classList.add("app-shell");
-
-  const btn = document.createElement("button");
-  btn.className = "menu-btn";
-  btn.type = "button";
-  btn.setAttribute("aria-label", "Abrir menu");
-  btn.textContent = "☰";
-
-  const backdrop = document.createElement("div");
-  backdrop.className = "menu-backdrop";
-
-  document.body.append(btn, backdrop);
-
-  const setOpen = (open) => {
-    document.body.classList.toggle("menu-open", open);
-    btn.textContent = open ? "×" : "☰";
-    btn.setAttribute("aria-label", open ? "Fechar menu" : "Abrir menu");
-  };
-
-  btn.addEventListener("click", () => setOpen(!document.body.classList.contains("menu-open")));
-  backdrop.addEventListener("click", () => setOpen(false));
-  sidebar.addEventListener("click", e => { if(e.target.closest(".nav-item")) setOpen(false); });
-  document.addEventListener("keydown", e => { if(e.key === "Escape") setOpen(false); });
-  window.matchMedia("(min-width:901px)").addEventListener("change", e => { if(e.matches) setOpen(false); });
-}
 }
 
 function renderAddView(msg = ""){
@@ -789,7 +711,6 @@ function setView(view){
 // ---------- Inicialização ----------
 injectStyles();
 buildAddUI();
-buildResponsiveSidebar();
 buildModal();
 
 document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view)));
