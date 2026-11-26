@@ -159,7 +159,7 @@ body{overflow-x:clip}
 /* Aproveitamento (cores neutras; o style.css do site tem prioridade) */
 :where(.perf-grid){display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
 :where(.perf-card){padding:18px;color:inherit;background:rgba(127,127,127,.08);border:1px solid rgba(127,127,127,.28);border-radius:14px;display:grid;gap:12px}
-:where(.perf-card.perf-total){grid-column:1/-1;background:rgba(215,25,32,.07);border-color:rgba(215,25,32,.4)}
+:where(.perf-card.perf-total){background:rgba(215,25,32,.07);border-color:rgba(215,25,32,.4)}
 :where(.perf-card header){display:flex;align-items:center;justify-content:space-between;gap:10px}
 :where(.perf-card h3){margin:0;font-size:16px;color:inherit}
 :where(.perf-pct){font-size:26px;font-weight:900;color:inherit}
