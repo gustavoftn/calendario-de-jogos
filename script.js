@@ -132,7 +132,18 @@ function injectStyles(){
     .standings-rank{color:#aaa;font-weight:800}
     .points-cell{color:#fff;font-weight:900}
     @media(max-width:720px){.standings-heading{align-items:flex-start;flex-direction:column}.standings-actions{width:100%}.simulate-btn,.reset-sim-btn{flex:1}}
-  `;
+    /* Sidebar responsivo */
+    /* Abas do menu no celular: só a faixa rola, a página não */
+html,body{max-width:100%;overflow-x:hidden}
+.nav-scroll{
+  display:flex!important;flex-wrap:nowrap!important;gap:8px;
+  overflow-x:auto;overflow-y:hidden;max-width:100%;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;
+  scroll-snap-type:x proximity;padding-bottom:4px}
+.nav-scroll::-webkit-scrollbar{display:none}
+.nav-scroll .nav-item{flex:0 0 auto;white-space:nowrap;scroll-snap-align:start}
+.app-sidebar-fix{min-width:0;max-width:100%}
+    `;
   const style = document.createElement("style");
   style.id = "app-extra-styles";
   style.textContent = css;
@@ -168,119 +179,6 @@ function colorClass(m){
 }
 
 // ---------- Adicionar jogo (exige login no Supabase) ----------
-let authToken = sessionStorage.getItem("sb_token") || null;
-
-function buildAddUI(){
-  const nav = document.querySelector(".nav-item")?.parentElement;
-  if(nav){
-    const b = document.createElement("button");
-    b.className = "nav-item"; b.dataset.view = "add";
-    b.textContent = "＋ Adicionar jogo";
-    nav.appendChild(b);
-  }
-  const sec = document.createElement("section");
-  sec.id = "addView"; sec.className = "hidden";
-  sec.style.display = "none";
-  const lv = $("#listView");
-  if(lv) lv.insertAdjacentElement("afterend", sec);
-  else document.body.appendChild(sec);
-}
-
-function renderAddView(msg = ""){
-  const box = $("#addView");
-  if(!box) return;
-  if(!authToken){
-    box.innerHTML = `<form id="loginForm" class="add-card">
-      <h3>Entrar para adicionar jogos</h3>
-      <label>E-mail<input type="email" id="loginEmail" required></label>
-      <label>Senha<input type="password" id="loginPass" required></label>
-      <button type="submit" class="add-btn">Entrar</button>
-      <p class="add-msg">${esc(msg)}</p></form>`;
-    $("#loginForm").addEventListener("submit", login);
-    return;
-  }
-  box.innerHTML = `<form id="addForm" class="add-card">
-    <h3>Adicionar jogo</h3>
-    <div class="add-grid">
-      <label>Data<input type="date" name="data" required></label>
-      <label>Horário<input type="time" name="horario" value="16:00"></label>
-      <label>Mandante<input name="mandante" required placeholder="Atlético-MG"></label>
-      <label>Visitante<input name="visitante" required></label>
-      <label>Competição<input name="competicao" list="comps" placeholder="Brasileirão"></label>
-      <datalist id="comps"><option value="Brasileirão"><option value="Copa do Brasil"><option value="Libertadores"><option value="Sul-Americana"><option value="Mineiro"><option value="Amistoso"></datalist>
-      <label>Estádio<input name="estadio"></label>
-      <label>Transmissão<input name="transmissao" placeholder="Globo, Premiere"></label>
-      <label>Situação<select name="status">
-        <option>Agendado</option><option>Ao vivo</option><option>Finalizado</option><option>Adiado</option><option>Cancelado</option>
-      </select></label>
-      <label>Gols mandante<input type="number" min="0" name="gols_mandante"></label>
-      <label>Gols visitante<input type="number" min="0" name="gols_visitante"></label>
-    </div>
-    <div class="add-actions">
-      <button type="submit" class="add-btn">Salvar jogo</button>
-      <button type="button" id="logoutBtn" class="add-btn ghost">Sair</button>
-    </div>
-    <p class="add-msg">${esc(msg)}</p></form>`;
-  $("#addForm").addEventListener("submit", addMatch);
-  $("#logoutBtn").addEventListener("click", logout);
-}
-
-async function login(e){
-  e.preventDefault();
-  const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-    method: "POST",
-    headers: { apikey: SUPABASE_PUBLISHABLE_KEY, "Content-Type": "application/json" },
-    body: JSON.stringify({ email: $("#loginEmail").value, password: $("#loginPass").value })
-  });
-  const data = await res.json().catch(() => ({}));
-  if(!res.ok || !data.access_token) return renderAddView("E-mail ou senha incorretos.");
-  authToken = data.access_token;
-  sessionStorage.setItem("sb_token", authToken);
-  renderAddView();
-  updateNotice();
-}
-
-function logout(){
-  authToken = null;
-  sessionStorage.removeItem("sb_token");
-  renderAddView();
-  updateNotice();
-}
-
-async function addMatch(e){
-  e.preventDefault();
-  const v = Object.fromEntries(new FormData(e.target));
-  const num = (x) => (x === "" || x == null ? null : Number(x));
-  const row = {
-    data: v.data, horario: v.horario || null,
-    mandante: v.mandante.trim(), visitante: v.visitante.trim(),
-    competicao: v.competicao.trim() || null, estadio: v.estadio.trim() || null,
-    status: v.status, gols_mandante: num(v.gols_mandante), gols_visitante: num(v.gols_visitante)
-  };
-  // Só envia a transmissão se preenchida (exige a coluna "transmissao" na tabela)
-  if(v.transmissao && v.transmissao.trim()) row.transmissao = v.transmissao.trim();
-
-  if(row.status === "Finalizado" && (row.gols_mandante == null || row.gols_visitante == null))
-    return renderAddView("Para jogo finalizado, informe os dois placares.");
-
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/jogos_manuais`, {
-    method: "POST",
-    headers: {
-      apikey: SUPABASE_PUBLISHABLE_KEY,
-      Authorization: `Bearer ${authToken}`,
-      "Content-Type": "application/json",
-      Prefer: "return=minimal"
-    },
-    body: JSON.stringify(row)
-  });
-  if(res.status === 401 || res.status === 403){ logout(); return renderAddView("Sessão expirada. Entre de novo."); }
-  if(!res.ok){
-    const err = await res.json().catch(() => ({}));
-    return renderAddView(`Erro ao salvar: ${err.message || res.status}`);
-  }
-  await loadMatches();
-  renderAddView("Jogo salvo! Já aparece no calendário e na lista.");
-}
 
 // ---------- Carregar jogos ----------
 async function loadManualMatches(){
@@ -711,6 +609,7 @@ function setView(view){
 // ---------- Inicialização ----------
 injectStyles();
 buildAddUI();
+buildResponsiveSidebar();
 buildModal();
 
 document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view)));
