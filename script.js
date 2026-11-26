@@ -149,11 +149,17 @@ body{overflow-x:clip}
 @media(min-width:901px){
   .sidebar-sticky{position:sticky!important;top:0;align-self:start;height:100vh;overflow-y:auto}
 }
+@media(max-width:900px){
+  /* No celular/tablet a sidebar vira o topo da página: ocupa a largura toda */
+  .sidebar-sticky{position:static!important;width:100%!important;max-width:100%!important;min-width:0!important;
+    height:auto!important;grid-column:1/-1;justify-self:stretch;align-self:stretch;box-sizing:border-box}
+  .nav-scroll{width:100%;min-width:0}
+}
 
 /* Aproveitamento (cores neutras; o style.css do site tem prioridade) */
 :where(.perf-grid){display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
 :where(.perf-card){padding:18px;color:inherit;background:rgba(127,127,127,.08);border:1px solid rgba(127,127,127,.28);border-radius:14px;display:grid;gap:12px}
-:where(.perf-card.perf-total){background:rgba(215,25,32,.07);border-color:rgba(215,25,32,.4)}
+:where(.perf-card.perf-total){grid-column:1/-1;background:rgba(215,25,32,.07);border-color:rgba(215,25,32,.4)}
 :where(.perf-card header){display:flex;align-items:center;justify-content:space-between;gap:10px}
 :where(.perf-card h3){margin:0;font-size:16px;color:inherit}
 :where(.perf-pct){font-size:26px;font-weight:900;color:inherit}

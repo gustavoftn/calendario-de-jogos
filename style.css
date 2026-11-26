@@ -39,7 +39,7 @@ h1,h2,h3,p{margin-top:0}h1{font:800 clamp(27px,3vw,38px) Manrope;letter-spacing:
 .filters{display:flex;gap:10px}.filters label{display:grid;gap:6px}.filters label span{font-size:8px;letter-spacing:1.3px;color:#999;font-weight:800}.filters select{background:#202020;border:1px solid #353535;color:#eee;border-radius:7px;padding:9px 30px 9px 10px;font-size:11px;min-width:165px}
 .content-view.hidden{display:none}
 .calendar-panel,.day-panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
-#calendarView{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(250px,.8fr);gap:15px}
+#calendarView{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(150px,.8fr);gap:15px}
 .calendar-panel{padding:21px}.calendar-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
 .calendar-heading h2,.list-heading h2{font:800 21px Manrope;margin:0}.month-actions{display:flex;gap:6px}.month-actions button{background:#252525;border:1px solid #393939;color:white;border-radius:7px;min-width:34px;height:32px}.month-actions button:hover{border-color:var(--red)}#todayBtn{font-size:10px;padding:0 11px}
 .weekdays,.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
