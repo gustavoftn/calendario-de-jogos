@@ -134,7 +134,9 @@ function injectStyles(){
     @media(max-width:720px){.standings-heading{align-items:flex-start;flex-direction:column}.standings-actions{width:100%}.simulate-btn,.reset-sim-btn{flex:1}}
     /* Sidebar responsivo */
     /* Abas do menu no celular: só a faixa rola, a página não */
-html,body{max-width:100%;overflow-x:hidden}
+html,body{max-width:100%}
+body{overflow-x:clip}
+@media(max-width:480px){
 .nav-scroll{
   display:flex!important;flex-wrap:nowrap!important;gap:8px;
   overflow-x:auto;overflow-y:hidden;max-width:100%;
@@ -142,7 +144,29 @@ html,body{max-width:100%;overflow-x:hidden}
   scroll-snap-type:x proximity;padding-bottom:4px}
 .nav-scroll::-webkit-scrollbar{display:none}
 .nav-scroll .nav-item{flex:0 0 auto;white-space:nowrap;scroll-snap-align:start}
+}
 .app-sidebar-fix{min-width:0;max-width:100%}
+@media(min-width:901px){
+  .sidebar-sticky{position:sticky!important;top:0;align-self:start;height:100vh;overflow-y:auto}
+}
+
+/* Aproveitamento (cores neutras; o style.css do site tem prioridade) */
+:where(.perf-grid){display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+:where(.perf-card){padding:18px;color:inherit;background:rgba(127,127,127,.08);border:1px solid rgba(127,127,127,.28);border-radius:14px;display:grid;gap:12px}
+:where(.perf-card.perf-total){background:rgba(215,25,32,.07);border-color:rgba(215,25,32,.4)}
+:where(.perf-card header){display:flex;align-items:center;justify-content:space-between;gap:10px}
+:where(.perf-card h3){margin:0;font-size:16px;color:inherit}
+:where(.perf-pct){font-size:26px;font-weight:900;color:inherit}
+:where(.perf-bar){height:10px;background:rgba(127,127,127,.25);border-radius:999px;overflow:hidden}
+:where(.perf-bar i){display:block;height:100%;border-radius:999px}
+:where(.perf-bar i.tier-high){background:#22c55e}
+:where(.perf-bar i.tier-mid){background:#eab308}
+:where(.perf-bar i.tier-low){background:#ef4444}
+:where(.perf-stats){display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0}
+:where(.perf-stats>div){text-align:center;padding:8px 4px;background:rgba(127,127,127,.12);border-radius:9px}
+:where(.perf-stats dt){font-size:10px;letter-spacing:.08em;opacity:.65}
+:where(.perf-stats dd){margin:2px 0 0;font-weight:800;font-size:15px;color:inherit}
+:where(.perf-card small){font-size:12px;opacity:.65}
     `;
   const style = document.createElement("style");
   style.id = "app-extra-styles";
@@ -153,8 +177,7 @@ html,body{max-width:100%;overflow-x:hidden}
 // Aviso de carregamento: só aparece para o admin (logado)
 let noticeText = "";
 function updateNotice(){
-  if(authToken && noticeText) showNotice(noticeText);
-  else hideNotice();
+  hideNotice(); // sem login de admin, o aviso técnico fica oculto
 }
 
 // ---------- Resultado (vitória / empate / derrota) ----------
@@ -592,23 +615,56 @@ function setView(view){
   const toggle=(el,on)=>{
     if(!el) return;
     el.classList.toggle("hidden",!on);
-    el.style.display=on?"":"none";
+    if(on) el.removeAttribute("hidden"); else el.setAttribute("hidden","");
+    el.style.display=on?"block":"none";
   };
   calendarParts().forEach(el=>toggle(el,view==="calendar"));
   toggle($("#listView"),view==="list");
-  toggle($("#addView"),view==="add");
   toggle($("#standingsView"),view==="standings");
   toggle($("#performanceView"),view==="performance");
   document.querySelectorAll("[data-view]").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
-  if(view==="add") renderAddView();
   if(view==="standings") renderStandings();
   if(view==="performance") renderPerformance();
   window.scrollTo({top:0});
 }
 
+// ---------- Menu e tela de Aproveitamento ----------
+function buildResponsiveSidebar(){
+  const first = document.querySelector(".nav-item");
+  const nav = first?.parentElement;
+  if(nav){
+    nav.classList.add("nav-scroll");
+    nav.parentElement?.classList.add("app-sidebar-fix");
+    // Sidebar = o ancestral do menu que está no mesmo nível do conteúdo principal
+    const grid = $("#calendarGrid");
+    let side = nav;
+    while(side?.parentElement && grid && !side.parentElement.contains(grid)) side = side.parentElement;
+    if(side && side !== document.body) side.classList.add("sidebar-sticky");
+    if(!nav.querySelector('[data-view="performance"]')){
+      const b = document.createElement("button");
+      b.className = "nav-item"; b.dataset.view = "performance";
+      b.textContent = "Aproveitamento";
+      nav.appendChild(b);
+    }
+  }
+  let sec = $("#performanceView");
+  if(!sec){
+    sec = document.createElement("section");
+    sec.id = "performanceView";
+    sec.innerHTML = `<div class="standings-heading"><h2>Aproveitamento por competição</h2></div>`;
+  }
+  if(!$("#performanceBody")){
+    sec.insertAdjacentHTML("beforeend", `<div id="performanceBody" class="perf-grid"></div>`);
+  }
+  sec.classList.add("hidden"); sec.style.display = "none";
+  // Fica logo depois da Classificação (que já aparece corretamente)
+  const anchor = $("#standingsView") || $("#listView");
+  if(anchor && anchor.nextElementSibling !== sec) anchor.insertAdjacentElement("afterend", sec);
+  else if(!sec.parentElement) document.body.appendChild(sec);
+}
+
 // ---------- Inicialização ----------
 injectStyles();
-buildAddUI();
 buildResponsiveSidebar();
 buildModal();
 
