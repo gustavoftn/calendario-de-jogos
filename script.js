@@ -102,7 +102,7 @@ function injectStyles(){
     .modal-info>div{display:grid;grid-template-columns:110px 1fr;gap:10px}
     .modal-info dt{color:#999;font-size:12px;text-transform:uppercase;letter-spacing:.08em}
     .modal-info dd{margin:0}
-    .modal-title{margin:22px 0 8px;font-size:15px}
+    .modal-title{margin:22px 0 8px;font-size:15px;display:flex;justify-content:center}
     .modal-muted{color:#888;font-size:12px}
     .modal-sum{font-size:13px}
     .modal-sum .win{color:#4ade80}.modal-sum .draw{color:#facc15}.modal-sum .loss{color:#f87171}
@@ -173,6 +173,53 @@ body{overflow-x:clip}
 :where(.perf-stats dt){font-size:10px;letter-spacing:.08em;opacity:.65}
 :where(.perf-stats dd){margin:2px 0 0;font-weight:800;font-size:15px;color:inherit}
 :where(.perf-card small){font-size:12px;opacity:.65}
+
+    /* Escalações / campinho único (2 times) */
+    .lineup-wrap{display:grid;gap:12px;margin:8px 0 4px}
+    .lineup-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .lineup-head-team{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800}
+    .lineup-formation{display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(215,25,32,.15);color:#f87171;font-size:11px;font-weight:800;letter-spacing:.04em}
+    .pitch-full{position:relative;width:100%;aspect-ratio:16/10;min-height:280px;border-radius:12px;overflow:hidden;
+      background:repeating-linear-gradient(90deg,rgba(255,255,255,.045) 0 7%,transparent 7% 14%),linear-gradient(90deg,#1a7a42 0%,#146b38 50%,#1a7a42 100%);
+      border:2px solid rgba(255,255,255,.22);box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)}
+    .pitch-full-marks{position:absolute;inset:5% 3%;border:1.5px solid rgba(255,255,255,.32);border-radius:3px;pointer-events:none}
+    .pitch-full-marks::before{content:"";position:absolute;top:0;bottom:0;left:50%;border-left:1.5px solid rgba(255,255,255,.32)}
+    .pitch-full-marks::after{content:"";position:absolute;left:50%;top:50%;width:14%;aspect-ratio:1;border:1.5px solid rgba(255,255,255,.32);border-radius:50%;transform:translate(-50%,-50%)}
+    .pitch-box-l,.pitch-box-r{position:absolute;top:50%;transform:translateY(-50%);height:48%;width:12%;border:1.5px solid rgba(255,255,255,.32);pointer-events:none}
+    .pitch-box-l{left:0;border-right:none;border-radius:2px 0 0 2px}
+    .pitch-box-r{right:0;border-left:none;border-radius:0 2px 2px 0}
+    .pitch-halves{position:absolute;inset:6% 2%;display:grid;grid-template-columns:1fr 1fr;gap:2%;z-index:1}
+    .pitch-half{display:flex;justify-content:space-between;align-items:stretch;min-width:0}
+    .pitch-half.is-away{flex-direction:row-reverse}
+    .pitch-col{display:flex;flex-direction:column;justify-content:space-evenly;align-items:center;flex:1;min-width:0;gap:2px}
+    .pitch-player{display:flex;flex-direction:column;align-items:center;gap:2px;max-width:70px;min-width:0}
+    .pitch-num{width:26px;height:26px;border-radius:50%;background:#fff;color:#111;font-weight:900;font-size:11px;
+      display:grid;place-items:center;box-shadow:0 1px 4px rgba(0,0,0,.4);border:2px solid rgba(0,0,0,.1);flex-shrink:0}
+    .pitch-player.is-galo .pitch-num{background: repeating-linear-gradient(
+        90deg,
+        #111111,
+        #111111 6px,
+        #ffffff 6px,
+        #ffffff 12px
+    );
+    color: #ffd700;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 2px #000;
+    border-color: rgba(255, 255, 255, 0.35);}
+    .pitch-player.is-away-team .pitch-num{background:#1e293b;color:#fff;border-color:rgba(255,255,255,.25)}
+    .pitch-name{font-size:9px;line-height:1.15;text-align:center;color:#fff;font-weight:700;
+      text-shadow:0 1px 2px rgba(0,0,0,.85);max-width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
+    .bench-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .lineup-list{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+    .lineup-list li{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;padding:5px 6px;border-radius:8px;font-size:12px;background:rgba(127,127,127,.08)}
+    .lineup-jersey{font-weight:800;color:#aaa;text-align:center}
+    .lineup-pos{color:#777;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+    .lineup-bench-title{margin:0 0 4px;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.08em}
+    .lineup-empty{color:#888;font-size:12px;margin:0}
+    @media(max-width:560px){
+      .pitch-full{aspect-ratio:4/3;min-height:220px}
+      .pitch-name{font-size:8px}.pitch-num{width:22px;height:22px;font-size:10px}
+      .bench-grid{grid-template-columns:1fr}
+    }
     `;
   const style = document.createElement("style");
   style.id = "app-extra-styles";
@@ -537,6 +584,143 @@ function h2hSection(m, det, loading){
   return `${resumo}<ul class="h2h-list">${rows}</ul><p class="modal-muted">Fonte: ${esc(fonte)}.</p>`;
 }
 
+// Linha tática a partir da posição ESPN (0=GK … 5=ataque)
+function tacticalLine(pos){
+  const p = String(pos || "").toUpperCase();
+  if(/^G|GK|GOL/.test(p)) return 0;
+  if(/RB|LB|CB|CD|WB|RWB|LWB|DEF|BACK|^D$/.test(p)) return 1;
+  if(/DM|CDM|VOL|MDC/.test(p)) return 2;
+  if(/AM|CAM|OM|SA|MEI.*ATA|ATA.*MEI/.test(p)) return 4;
+  if(/F|ST|CF|SS|FW|ATA|W$|LW|RW|PON/.test(p)) return 5;
+  // CM, LM, RM, M e afins
+  return 3;
+}
+
+// Ordena lateralmente: esquerda → direita
+function sideRank(pos){
+  const p = String(pos || "").toUpperCase();
+  if(/LB|LWB|LM|LW|CD-L|LCB|CM-L|AM-L|^L$/.test(p)) return 0;
+  if(/CD-R|RCB|CM-R|AM-R|RB|RWB|RM|RW|^R$/.test(p)) return 4;
+  return 2;
+}
+
+function shortPlayerName(name){
+  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+  if(parts.length <= 1) return parts[0] || "—";
+  const last = parts[parts.length - 1];
+  if(last.length >= 3) return last;
+  return parts.slice(-2).join(" ");
+}
+
+function teamLines(side){
+  const starters = side?.starters || [];
+  const buckets = [[], [], [], [], [], []];
+  starters.forEach(p => {
+    buckets[Math.min(5, Math.max(0, tacticalLine(p.position)))].push(p);
+  });
+  // Fallback se não houver posições
+  const onlyGkOrEmpty = buckets.slice(1).every(b => !b.length);
+  if(onlyGkOrEmpty && starters.length){
+    buckets.forEach((_, i) => { buckets[i] = []; });
+    starters.forEach(p => {
+      const fp = Number(p.formationPlace) || 99;
+      if(fp <= 1) buckets[0].push(p);
+      else if(fp <= 5) buckets[1].push(p);
+      else if(fp <= 7) buckets[2].push(p);
+      else if(fp <= 10) buckets[3].push(p);
+      else buckets[5].push(p);
+    });
+  }
+  return buckets
+    .map(list => [...list].sort((a, b) =>
+      sideRank(a.position) - sideRank(b.position) ||
+      (a.formationPlace ?? 99) - (b.formationPlace ?? 99)
+    ))
+    .filter(list => list.length);
+}
+
+function halfPitchHtml(side, { away = false } = {}){
+  const lines = teamLines(side); // GK → ataque
+  const galo = /atletico[\s-]*(mg|mineiro)/i.test(normalizeName(side?.teamName));
+  const playerCls = galo ? "pitch-player is-galo" : (away ? "pitch-player is-away-team" : "pitch-player");
+
+  const cols = lines.map(list => {
+    const players = list.map(p =>
+      `<div class="${playerCls}" title="${esc(p.name)}">
+        <span class="pitch-num">${esc(p.jersey || "·")}</span>
+        <span class="pitch-name">${esc(shortPlayerName(p.name))}</span>
+      </div>`
+    ).join("");
+    return `<div class="pitch-col">${players}</div>`;
+  }).join("");
+
+  return `<div class="pitch-half${away ? " is-away" : ""}">${cols || `<p class="lineup-empty">—</p>`}</div>`;
+}
+
+function benchListHtml(side){
+  const bench = side?.bench || [];
+  if(!bench.length) return "";
+  const items = bench.map(p =>
+    `<li><span class="lineup-jersey">${esc(p.jersey || "—")}</span><span>${esc(p.name)}</span><span class="lineup-pos">${esc(p.position || "")}</span></li>`
+  ).join("");
+  return `<div>
+    <div class="lineup-bench-title">Reservas · ${esc(side.teamName || "")}</div>
+    <ul class="lineup-list">${items}</ul>
+  </div>`;
+}
+
+function lineupSection(m, det, loading){
+  if(loading) return `<p class="modal-muted">Carregando escalações…</p>`;
+  const list = det?.lineups || [];
+  if(!list.length){
+    if(det?.erro){
+      return `<p class="modal-muted">Não foi possível carregar a escalação (${esc(det.erro)}).</p>`;
+    }
+    return `<p class="modal-muted">Escalação ainda não disponível (geralmente sai perto do horário do jogo ou após o apito inicial).</p>`;
+  }
+
+  const homeName = normalizeName(m.homeTeam?.name || m.homeTeam?.shortName);
+  const ordered = [...list].sort((a, b) => {
+    const aHome = normalizeName(a.teamName) === homeName ? 0 : 1;
+    const bHome = normalizeName(b.teamName) === homeName ? 0 : 1;
+    return aHome - bHome;
+  });
+  const home = ordered[0] || null;
+  const away = ordered[1] || null;
+
+  const head = `
+    <div class="lineup-head">
+      <div class="lineup-head-team">
+        <span>${esc(home?.teamName || m.homeTeam?.name || "Mandante")}</span>
+        ${home?.formation ? `<span class="lineup-formation">${esc(home.formation)}</span>` : ""}
+      </div>
+      <div class="lineup-head-team" style="margin-left:auto;text-align:right">
+        ${away?.formation ? `<span class="lineup-formation">${esc(away.formation)}</span>` : ""}
+        <span>${esc(away?.teamName || m.awayTeam?.name || "Visitante")}</span>
+      </div>
+    </div>`;
+
+  const pitch = `
+    <div class="pitch-full">
+      <div class="pitch-full-marks">
+        <div class="pitch-box-l"></div>
+        <div class="pitch-box-r"></div>
+      </div>
+      <div class="pitch-halves">
+        ${halfPitchHtml(home, { away: false })}
+        ${halfPitchHtml(away, { away: true })}
+      </div>
+    </div>`;
+
+  const benches = [benchListHtml(home), benchListHtml(away)].filter(Boolean).join("");
+
+  return `<div class="lineup-wrap">
+    ${head}
+    ${pitch}
+    ${benches ? `<div class="bench-grid">${benches}</div>` : ""}
+  </div>`;
+}
+
 function modalHTML(m, det, loading){
   const h = m.homeTeam, a = m.awayTeam, s = m.score?.fullTime;
   const has = s?.home != null && s?.away != null, r = resultOf(m);
@@ -561,11 +745,102 @@ function modalHTML(m, det, loading){
       <div><dt>Horário</dt><dd>${esc(localTime(m.utcDate))} (Brasília)</dd></div>
       <div><dt>Situação</dt><dd>${esc(statusNames[m.status] || m.status || "—")}</dd></div>
       <div><dt>Local</dt><dd>${esc(local || "A confirmar")}</dd></div>
-      <div><dt>Transmissão</dt><dd>${canais.length ? esc(canais.join(", ")) : "Não informada"}${notaCanal ? "<br>" + notaCanal : ""}</dd></div>
     </dl>
     ${aviso}
-    <h4 class="modal-title">Histórico de confrontos</h4>
-    ${h2hSection(m, det, loading)}`;
+    <h4 class="modal-title">Escalação</h4>
+    ${lineupSection(m, det, loading)}`;
+}
+
+// Código ESPN da competição a partir do code/sigla usado no calendário
+const LIGA_ESPN = {
+  BRA: "bra.1",
+  CDB: "bra.copa_do_brazil",
+  LIB: "conmebol.libertadores",
+  SUL: "conmebol.sudamericana",
+  "bra.1": "bra.1",
+  "bra.copa_do_brazil": "bra.copa_do_brazil",
+  "conmebol.libertadores": "conmebol.libertadores",
+  "conmebol.sudamericana": "conmebol.sudamericana",
+};
+
+function resolveLiga(m){
+  if(m.liga) return m.liga;
+  const code = m.competition?.code || m.competition?.name || "";
+  if(LIGA_ESPN[code]) return LIGA_ESPN[code];
+  const upper = String(code).toUpperCase();
+  if(LIGA_ESPN[upper]) return LIGA_ESPN[upper];
+  // fallback comum para o Brasileirão
+  if(/brasil|serie\s*a|bra\.?1/i.test(String(m.competition?.name || ""))) return "bra.1";
+  return null;
+}
+
+function parseEspnSummary(data){
+  const competition = data?.header?.competitions?.[0] || {};
+  const venue = competition.venue || data?.gameInfo?.venue || {};
+  const broadcasts = [];
+  (data?.broadcasts || competition.broadcasts || []).forEach(b => {
+    if(typeof b === "string") broadcasts.push(b);
+    else if(b?.names) broadcasts.push(...b.names);
+    else if(b?.media?.shortName) broadcasts.push(b.media.shortName);
+  });
+
+  const lineups = (data?.rosters || []).map(rosterEntry => {
+    const team = rosterEntry?.team || {};
+    const players = (rosterEntry?.roster || []).map(p => {
+      const athlete = p?.athlete || {};
+      return {
+        id: athlete.id || null,
+        name: athlete.displayName || athlete.fullName || athlete.shortName || "—",
+        shortName: athlete.shortName || athlete.displayName || "—",
+        jersey: p?.jersey != null ? String(p.jersey) : null,
+        position: p?.position?.abbreviation || p?.position?.name || null,
+        formationPlace: p?.formationPlace != null ? Number(p.formationPlace) : null,
+        starter: Boolean(p?.starter),
+      };
+    });
+    return {
+      teamId: team.id || null,
+      teamName: team.displayName || team.name || "—",
+      formation: rosterEntry?.formation || null,
+      starters: players.filter(p => p.starter).sort((a,b) => (a.formationPlace ?? 99) - (b.formationPlace ?? 99)),
+      bench: players.filter(p => !p.starter),
+    };
+  });
+
+  return {
+    success: true,
+    venue: {
+      name: venue.fullName || venue.displayName || null,
+      city: venue.address?.city || venue.city || null,
+    },
+    broadcasts: [...new Set(broadcasts.filter(Boolean))],
+    lineups,
+    h2h: [],
+  };
+}
+
+async function fetchMatchDetails(m){
+  const liga = resolveLiga(m);
+  const eventId = m.eventId || String(m.id || "").replace(/^[A-Z]+-/, "");
+
+  // 1) Tenta a API própria (se existir no projeto)
+  if(liga && eventId){
+    try{
+      const res = await fetch(`/api/jogo?event=${encodeURIComponent(eventId)}&liga=${encodeURIComponent(liga)}`);
+      if(res.ok){
+        const det = await res.json().catch(() => null);
+        if(det && (det.lineups?.length || det.success)) return det;
+      }
+    }catch(_){ /* segue para fallback ESPN */ }
+  }
+
+  // 2) Fallback direto na ESPN (CORS liberado)
+  if(!liga || !eventId) throw new Error("Jogo sem identificador ESPN (eventId/liga)");
+  const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${encodeURIComponent(liga)}/summary?event=${encodeURIComponent(eventId)}`;
+  const res = await fetch(url, { headers: { Accept: "application/json" } });
+  if(!res.ok) throw new Error(`ESPN HTTP ${res.status}`);
+  const data = await res.json();
+  return parseEspnSummary(data);
 }
 
 async function openMatch(id){
@@ -575,19 +850,17 @@ async function openMatch(id){
   $("#matchModal").classList.remove("hidden");
   const body = $("#modalBody");
 
-  const canFetch = m.source === "espn" && m.eventId && m.liga;
+  const canFetch = m.source === "espn" && (m.eventId || m.id) && (m.liga || resolveLiga(m));
   if(!canFetch){ body.innerHTML = modalHTML(m, null, false); return; }
   if(detailCache.has(id)){ body.innerHTML = modalHTML(m, detailCache.get(id), false); return; }
 
   body.innerHTML = modalHTML(m, null, true);
   try{
-    const res = await fetch(`/api/jogo?event=${encodeURIComponent(m.eventId)}&liga=${encodeURIComponent(m.liga)}`);
-    const det = await res.json().catch(() => ({}));
-    if(!res.ok) throw new Error(det.error || `HTTP ${res.status}`);
+    const det = await fetchMatchDetails(m);
     detailCache.set(id, det);
     if(currentModalId === id) body.innerHTML = modalHTML(m, det, false);
   }catch(err){
-    if(currentModalId === id) body.innerHTML = modalHTML(m, { erro: err.message }, false);
+    if(currentModalId === id) body.innerHTML = modalHTML(m, { erro: err.message, lineups: [] }, false);
   }
 }
 

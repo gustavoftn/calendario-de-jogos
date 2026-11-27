@@ -318,6 +318,7 @@ module.exports = async function handler(req, res) {
           return {
             id: `${liga.sigla}-${event.id}`,
             eventId: String(event.id),
+            liga: liga.codigo,
             utcDate: event.date || competition.date,
             status,
             homeTeam: time(home),
