@@ -13,14 +13,14 @@ button{cursor:pointer}
   width: 240px;
   height: 100vh;background:#151515;border-right:1px solid var(--line);padding:28px 18px;display:flex;flex-direction:column;min-height:100vh;position:sticky;top:0;height:100vh}
 .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--text);margin:2px 4px 36px}
-.brand-mark{width:42px;height:42px;border:2px solid var(--red);display:grid;place-items:center;font:800 22px Manrope;border-radius:10px;transform:skew(-5deg)}
+.brand-mark{width:42px;height:42px;border:2px solid #ffffff;display:grid;place-items:center;font:800 22px Manrope;border-radius:10px;transform:skew(-5deg)}
 .brand strong{font:800 19px Manrope;letter-spacing:1.5px}.brand-dot{color:var(--red)}
 .brand small{display:block;color:var(--muted);font-size:9px;letter-spacing:1.7px;margin-top:3px}
 .club-card{display:flex;align-items:center;gap:12px;background:#202020;border:1px solid #303030;border-radius:12px;padding:13px 11px;margin-bottom:28px}
 .club-crest{height:40px;width:40px;border-radius:50%;background:#080808;border:1px solid #555;display:grid;place-items:center;font-size:11px;font-weight:800;color:#fff}
 .club-card strong{font-size:13px;display:block}.club-card small{font-size:11px;color:var(--muted);display:block;margin-top:4px}
 .side-nav{display:grid;gap:7px}.nav-item{border:0;background:transparent;color:#aaa;text-align:left;padding:13px 14px;border-radius:9px;font-weight:600;font-size:13px;display:flex;gap:12px;align-items:center}
-.nav-item span{font-size:19px;width:20px;text-align:center}.nav-item:hover,.nav-item.active{background:#302020;color:#fff}.nav-item.active{box-shadow:inset 3px 0 var(--red)}
+.nav-item span{font-size:19px;width:20px;text-align:center}.nav-item:hover,.nav-item.active{background:#363333;color:#fff}.nav-item.active{box-shadow:inset 3px 0 #ffffff}
 .sidebar-bottom{margin-top:auto;color:#9c9c9c;font-size:11px;display:flex;align-items:center;gap:9px;padding:12px 5px}
 .live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 10px #31b36b88}
 .main{max-width:1600px;width:100%;margin:0 auto;padding:38px 46px 24px}
@@ -45,7 +45,7 @@ h1,h2,h3,p{margin-top:0}h1{font:800 clamp(27px,3vw,38px) Manrope;letter-spacing:
 .weekdays,.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 .weekdays{margin-bottom:8px}.weekdays span{text-align:center;color:#888;font-size:9px;font-weight:800;letter-spacing:1px;padding:8px 0}
 .calendar-day{border:1px solid #292929;background:#1c1c1c;border-radius:7px;min-height:76px;padding:8px;text-align:left;color:#ddd;position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:5px}
-.calendar-day.outside{opacity:.28}.calendar-day.today{border-color:#777}.calendar-day.selected{background:#321e20;border-color:var(--red)}.calendar-day.has-match:after{content:"";height:5px;width:5px;border-radius:50%;background:var(--red);position:absolute;right:9px;top:11px}
+.calendar-day.outside{opacity:.28}.calendar-day.today{border-color:#777}.calendar-day.selected{background: #383737;border-color: #ffffff;}.calendar-day.has-match:after{content:"";height:5px;width:5px;border-radius:50%;background:var(--red);position:absolute;right:9px;top:11px}
 .day-number{font-size:11px;font-weight:700}.day-match-label{font-size:9px;color:#ffb4b7;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .calendar-legend{display:flex;justify-content:space-between;gap:12px;color:#888;font-size:9px;margin-top:15px}.calendar-legend span:first-child{display:flex;align-items:center;gap:7px}.calendar-legend i{width:6px;height:6px;border-radius:50%;background:var(--red)}
 .day-panel{padding:21px;min-height:310px}.day-panel h3{font:700 17px Manrope;margin-bottom:18px}.day-matches{display:grid;gap:10px}
@@ -211,7 +211,7 @@ html[data-theme="light"] .month-actions button{background:#f1eeec;border-color:#
 html[data-theme="light"] .weekdays span,html[data-theme="light"] .calendar-legend{color:#777}
 html[data-theme="light"] .calendar-day{background:#faf8f7;border-color:#e6e2df;color:#333}
 html[data-theme="light"] .calendar-day.today{border-color:#888}
-html[data-theme="light"] .calendar-day.selected{background:#fdeaea;border-color:var(--red)}
+html[data-theme="light"] .calendar-day.selected{    background: #cbcbcb;border-color: #070707;}
 html[data-theme="light"] .day-match-label{color:#b3141b}
 html[data-theme="light"] .day-match{background:#faf8f7;border-top-color:#e2dedb;border-right-color:#e2dedb;border-bottom-color:#e2dedb}
 html[data-theme="light"] .match-comp,html[data-theme="light"] .list-comp{color:#666}
