@@ -622,7 +622,7 @@ function setView(view){
     if(!el) return;
     el.classList.toggle("hidden",!on);
     if(on) el.removeAttribute("hidden"); else el.setAttribute("hidden","");
-    el.style.display=on?"block":"none";
+    el.style.display=on?"":"none";
   };
   calendarParts().forEach(el=>toggle(el,view==="calendar"));
   toggle($("#listView"),view==="list");
